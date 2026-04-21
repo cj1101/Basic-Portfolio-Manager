@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+build/
+dist/
+
+# Node
+node_modules/
+.pnpm-store/
+.turbo/
+*.tsbuildinfo
+
+# Editors / OS
+.DS_Store
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.swp
+
+# Local caches declared in SPEC.md §6 (owned by Agent 1A Data later)
+backend/.cache/
+
+# Secrets
+.env
+.env.local
+.env.*.local

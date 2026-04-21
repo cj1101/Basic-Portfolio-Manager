@@ -1,0 +1,61 @@
+{
+  "Meta Data": {
+    "1. Information": "Daily Time Series with Splits and Dividend Events",
+    "2. Symbol": "AAPL",
+    "3. Last Refreshed": "2024-11-21",
+    "4. Output Size": "Full size",
+    "5. Time Zone": "US/Eastern"
+  },
+  "Time Series (Daily)": {
+    "2024-11-21": {
+      "1. open": "225.1200",
+      "2. high": "229.7400",
+      "3. low": "225.0000",
+      "4. close": "228.5200",
+      "5. adjusted close": "228.5200",
+      "6. volume": "38654311",
+      "7. dividend amount": "0.0000",
+      "8. split coefficient": "1.0"
+    },
+    "2024-11-20": {
+      "1. open": "228.0400",
+      "2. high": "229.9300",
+      "3. low": "225.9000",
+      "4. close": "229.0000",
+      "5. adjusted close": "229.0000",
+      "6. volume": "35426594",
+      "7. dividend amount": "0.0000",
+      "8. split coefficient": "1.0"
+    },
+    "2024-11-19": {
+      "1. open": "226.9800",
+      "2. high": "230.1600",
+      "3. low": "226.6600",
+      "4. close": "228.2800",
+      "5. adjusted close": "228.2800",
+      "6. volume": "32626561",
+      "7. dividend amount": "0.0000",
+      "8. split coefficient": "1.0"
+    },
+    "2024-11-18": {
+      "1. open": "225.2500",
+      "2. high": "229.7400",
+      "3. low": "225.1700",
+      "4. close": "228.0200",
+      "5. adjusted close": "228.0200",
+      "6. volume": "44686020",
+      "7. dividend amount": "0.0000",
+      "8. split coefficient": "1.0"
+    },
+    "2024-11-15": {
+      "1. open": "226.4000",
+      "2. high": "227.0200",
+      "3. low": "224.2800",
+      "4. close": "225.0000",
+      "5. adjusted close": "225.0000",
+      "6. volume": "47923652",
+      "7. dividend amount": "0.0000",
+      "8. split coefficient": "1.0"
+    }
+  }
+}

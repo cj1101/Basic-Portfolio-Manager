@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-feature-settings:
+      "cv02",
+      "cv03",
+      "cv04",
+      "cv11";
+  }
+
+  body {
+    @apply font-sans text-slate-800 antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm font-medium;
+  }
+
+  .stat-label {
+    @apply text-xs font-medium uppercase tracking-wide text-slate-500;
+  }
+
+  .stat-value {
+    @apply text-2xl font-semibold tabular-nums text-slate-900;
+  }
+}
+
+/* Custom range-slider styling so the portfolio slider feels polished without extra libraries. */
+input[type="range"].slider-brand {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to right,
+    #2563eb 0%,
+    #2563eb var(--slider-progress, 30%),
+    #e2e8f0 var(--slider-progress, 30%),
+    #e2e8f0 100%
+  );
+  outline: none;
+}
+
+input[type="range"].slider-brand::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 3px solid #2563eb;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+  transition: transform 120ms ease;
+}
+
+input[type="range"].slider-brand::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+input[type="range"].slider-brand::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 3px solid #2563eb;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1);
+}
+
+.recharts-default-tooltip {
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08) !important;
+}
