@@ -7,6 +7,8 @@ coverage.xml
 htmlcov/
 .cache/
 .env
+.env.*
+!.env.example
 dist/
 build/
 *.egg-info/

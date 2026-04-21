@@ -30,10 +30,16 @@ node_modules/
 !.vscode/extensions.json
 *.swp
 
+# Cursor (local IDE state; keep team rules elsewhere if needed)
+.cursor/
+
 # Local caches declared in SPEC.md §6 (owned by Agent 1A Data later)
 backend/.cache/
 
-# Secrets
+# Secrets / environment files (keep tracked templates explicit)
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+!**/.env.example
+!.env.sample
+!**/.env.sample
