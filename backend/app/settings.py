@@ -25,7 +25,7 @@ class Settings(BaseSettings):
 
     alpha_vantage_api_key: str = Field(default="", description="Required in production")
     fred_api_key: str | None = None
-    openai_api_key: str | None = None
+    openrouter_api_key: str | None = None
 
     port: int = 8000
     cache_db_path: Path = Path("backend/.cache/market.db")
@@ -48,14 +48,18 @@ class Settings(BaseSettings):
 
     http_timeout_seconds: float = 15.0
 
-    # Chat / LLM (Agent E). The OpenAI SDK also honours OPENAI_BASE_URL, but
-    # keeping an explicit setting means tests and self-hosted deployments can
-    # point at a compatible endpoint (e.g. Azure OpenAI) without reaching into
-    # the SDK internals.
-    openai_model: str = "gpt-4o-mini"
-    openai_base_url: str | None = None
-    chat_llm_timeout_seconds: float = 10.0
+    # Chat / LLM (Agent E). We route all LLM calls through OpenRouter because
+    # it exposes an OpenAI-compatible API surface while giving the user one
+    # billing relationship across 100+ providers. The underlying transport
+    # stays the `openai` Python SDK; only the base_url + attribution headers
+    # change vs. talking to api.openai.com directly.
+    openrouter_model: str = "google/gemma-4-31b-it"
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    openrouter_http_referer: str = "http://localhost:5173"
+    openrouter_app_title: str = "Portfolio Manager"
+    chat_llm_timeout_seconds: float = 30.0
     chat_history_limit: int = 100
+    llm_models_cache_ttl_seconds: int = 60 * 5
 
     @field_validator("cors_origins", mode="before")
     @classmethod

@@ -61,6 +61,7 @@ def isolated_settings(tmp_path: Path, monkeypatch) -> Iterator[Settings]:
     monkeypatch.setenv("ALPHA_VANTAGE_API_KEY", "test-key")
     monkeypatch.setenv("FRED_API_KEY", "fred-test-key")
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.setenv("CACHE_DB_PATH", str(tmp_path / "cache.db"))
     monkeypatch.setenv("USE_MOCK_FALLBACK", "false")
     monkeypatch.setenv("CORS_ORIGINS", "http://localhost:5173")

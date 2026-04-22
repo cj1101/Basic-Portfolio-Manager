@@ -104,15 +104,20 @@ async def test_chat_auto_mode_rule_miss_without_llm(api_client: httpx.AsyncClien
     assert resp.status_code == 200
     payload = resp.json()
     assert payload["source"] == "rule"
-    assert "OPENAI_API_KEY" in payload["answer"]
+    assert "OPENROUTER_API_KEY" in payload["answer"]
 
 
 async def test_chat_auto_mode_fallback_with_llm_stub(
     app_instance: FastAPI, api_state: AppState, api_client: httpx.AsyncClient
 ):
     class _Stub:
-        async def answer(self, messages, context):
-            return "Rebalancing is personal — this backend can't advise."
+        model = "google/gemma-4-31b-it"
+
+        async def answer(self, messages, context, *, model=None):
+            return (
+                "Rebalancing is personal — this backend can't advise.",
+                model or self.model,
+            )
 
         async def close(self):
             pass
@@ -219,7 +224,9 @@ async def test_chat_llm_error_envelope_has_details(
     app_instance: FastAPI, api_state: AppState, api_client: httpx.AsyncClient
 ):
     class _RaisingStub:
-        async def answer(self, messages, context):
+        model = "google/gemma-4-31b-it"
+
+        async def answer(self, messages, context, *, model=None):
             raise AppError(
                 ErrorCode.LLM_UNAVAILABLE,
                 "stub failure",

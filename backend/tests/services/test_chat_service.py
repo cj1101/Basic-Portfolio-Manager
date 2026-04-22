@@ -16,18 +16,24 @@ from app.services.chat.service import ChatService
 
 
 class _StubLLM:
-    """Pretends to be an ``OpenAIChatClient`` without hitting the network."""
+    """Pretends to be an ``OpenRouterChatClient`` without hitting the network."""
 
-    def __init__(self, reply: str = "LLM reply", exc: Exception | None = None):
+    def __init__(
+        self,
+        reply: str = "LLM reply",
+        exc: Exception | None = None,
+        default_model: str = "google/gemma-4-31b-it",
+    ):
         self.reply = reply
         self.exc = exc
-        self.calls: list[tuple[list[ChatMessage], OptimizationResult | None]] = []
+        self.model = default_model
+        self.calls: list[tuple[list[ChatMessage], OptimizationResult | None, str | None]] = []
 
-    async def answer(self, messages, context):
-        self.calls.append((list(messages), context))
+    async def answer(self, messages, context, *, model: str | None = None):
+        self.calls.append((list(messages), context, model))
         if self.exc is not None:
             raise self.exc
-        return self.reply
+        return self.reply, model or self.model
 
     async def close(self) -> None:
         pass
@@ -72,7 +78,7 @@ async def test_auto_mode_without_llm_returns_rule_miss(
         ChatMode.AUTO,
     )
     assert resp.source is ChatSource.RULE
-    assert "OPENAI_API_KEY" in resp.answer
+    assert "OPENROUTER_API_KEY" in resp.answer
 
 
 async def test_rule_mode_never_invokes_llm(
@@ -140,3 +146,27 @@ async def test_empty_messages_rejected():
 async def test_llm_available_property():
     assert ChatService(llm=None).llm_available is False
     assert ChatService(llm=_StubLLM()).llm_available is True  # type: ignore[arg-type]
+
+
+async def test_model_override_is_forwarded_and_cited(
+    sample_optimization_result: OptimizationResult,
+):
+    llm = _StubLLM(reply="override!", default_model="google/gemma-4-31b-it")
+    service = ChatService(llm=llm)  # type: ignore[arg-type]
+    resp = await service.answer(
+        [ChatMessage(role="user", content="how should I rebalance")],
+        sample_optimization_result,
+        ChatMode.AUTO,
+        model="anthropic/claude-3.5-sonnet",
+    )
+    assert resp.source is ChatSource.LLM
+    assert llm.calls[-1][2] == "anthropic/claude-3.5-sonnet"
+    citations = {c.label: c.value for c in resp.citations}
+    assert citations["model"] == "anthropic/claude-3.5-sonnet"
+
+
+async def test_default_model_reflects_client():
+    llm = _StubLLM(default_model="foo/bar")
+    service = ChatService(llm=llm)  # type: ignore[arg-type]
+    assert service.default_model == "foo/bar"
+    assert ChatService(llm=None).default_model is None

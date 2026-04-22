@@ -15,6 +15,8 @@ import type {
   ChatResponse,
   ChatSessionResponse,
   ErrorCode,
+  LLMDefaultResponse,
+  LLMModelsResponse,
   OptimizationRequest,
   OptimizationResult,
 } from "@/types/contracts";
@@ -203,4 +205,20 @@ export function deleteChatSession(
     ...init,
     method: "DELETE",
   });
+}
+
+/**
+ * LLM provider metadata (Agent E settings panel).
+ *
+ * The backend proxies OpenRouter's /models endpoint so the browser never
+ * sees an API key. `getLlmDefault()` tells the UI whether the LLM toggle
+ * should be enabled and which model is the pre-filled default.
+ */
+
+export function getLlmModels(init?: RequestInit): Promise<LLMModelsResponse> {
+  return request<LLMModelsResponse>("/llm/models", init);
+}
+
+export function getLlmDefault(init?: RequestInit): Promise<LLMDefaultResponse> {
+  return request<LLMDefaultResponse>("/llm/default", init);
 }

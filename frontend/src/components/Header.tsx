@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { BrainCircuit, ShieldCheck, Target, AlertTriangle } from "lucide-react";
 import { Badge } from "./ui/Badge";
+import { SettingsButton, SettingsPanel } from "./Settings";
 import { usePortfolio } from "@/state/portfolioContext";
 import { pct } from "@/lib/format";
 
@@ -15,6 +17,7 @@ export function Header() {
   const { riskProfile, result } = usePortfolio();
   const { riskAversion, targetReturn } = riskProfile;
   const leverage = result.complete.leverageUsed;
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   return (
     <header
@@ -35,7 +38,7 @@ export function Header() {
             Transparent, math-first portfolio construction along the Capital Allocation Line.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge
             tone="success"
             icon={<ShieldCheck size={16} aria-hidden />}
@@ -59,8 +62,10 @@ export function Header() {
               Leverage in use
             </Badge>
           ) : null}
+          <SettingsButton onOpen={() => setSettingsOpen(true)} />
         </div>
       </div>
+      {settingsOpen ? <SettingsPanel onClose={() => setSettingsOpen(false)} /> : null}
     </header>
   );
 }

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Response
 
 from app.api.chat import router as chat_router
 from app.api.deps import get_service
+from app.api.llm import router as llm_router
 from app.api.optimize import router as optimize_router
 from app.data.service import DataService
 from app.schemas import (
@@ -73,6 +74,7 @@ def _set_provenance(response: Response, source: str, warnings: list[str]) -> Non
 
 router.include_router(optimize_router)
 router.include_router(chat_router)
+router.include_router(llm_router)
 
 
 __all__ = ["router"]

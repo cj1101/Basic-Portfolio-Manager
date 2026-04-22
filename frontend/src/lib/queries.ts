@@ -19,6 +19,8 @@ import type {
   ChatRequest,
   ChatResponse,
   ChatSessionResponse,
+  LLMDefaultResponse,
+  LLMModelsResponse,
   OptimizationRequest,
   OptimizationResult,
 } from "@/types/contracts";
@@ -26,6 +28,8 @@ import {
   ApiError,
   deleteChatSession,
   getChatSession,
+  getLlmDefault,
+  getLlmModels,
   getRiskFreeRate,
   postChatSessionMessage,
   postOptimize,
@@ -170,6 +174,31 @@ export function useSendChatMessage(
       if (error.code === "LLM_UNAVAILABLE") return false;
       return count < 1;
     },
+  });
+}
+
+export function useLlmModels(
+  enabled = true,
+): UseQueryResult<LLMModelsResponse, ApiError> {
+  return useQuery<LLMModelsResponse, ApiError>({
+    queryKey: ["llm", "models"],
+    queryFn: ({ signal }) => getLlmModels({ signal }),
+    enabled,
+    staleTime: 5 * 60_000,
+    retry: (count, error) => {
+      if (!(error instanceof ApiError)) return count < 1;
+      if (error.code === "LLM_UNAVAILABLE") return false;
+      return count < 1;
+    },
+  });
+}
+
+export function useLlmDefault(): UseQueryResult<LLMDefaultResponse, ApiError> {
+  return useQuery<LLMDefaultResponse, ApiError>({
+    queryKey: ["llm", "default"],
+    queryFn: ({ signal }) => getLlmDefault({ signal }),
+    staleTime: 5 * 60_000,
+    retry: 1,
   });
 }
 

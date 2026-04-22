@@ -13,9 +13,11 @@ import { ApiError } from "@/lib/api";
 import {
   useChatSession,
   useDeleteChatSession,
+  useLlmDefault,
   useSendChatMessage,
 } from "@/lib/queries";
 import { usePortfolio } from "@/state/portfolioContext";
+import { useSettingsOptional } from "@/state/settingsContext";
 import { Tooltip } from "../ui/Tooltip";
 
 const SESSION_STORAGE_KEY = "pm.chat.sessionId";
@@ -32,7 +34,11 @@ type ModeOption = { value: ChatMode; label: string; hint: string };
 const MODE_OPTIONS: readonly ModeOption[] = [
   { value: "auto", label: "Auto", hint: "Rule engine first, LLM fallback on miss" },
   { value: "rule", label: "Rule", hint: "Deterministic rule-based answers only" },
-  { value: "llm", label: "LLM", hint: "Always go to the OpenAI LLM (requires OPENAI_API_KEY)" },
+  {
+    value: "llm",
+    label: "LLM",
+    hint: "Always go to the OpenRouter LLM (requires OPENROUTER_API_KEY)",
+  },
 ];
 
 function readStoredSessionId(): string {
@@ -96,6 +102,14 @@ export function ChatShell() {
   const portfolio = usePortfolio();
   const serverContext = portfolio.result;
   const hasPortfolio = !!serverContext;
+  const settings = useSettingsOptional();
+  const defaultQuery = useLlmDefault();
+
+  useEffect(() => {
+    if (defaultQuery.data && !defaultQuery.data.llmAvailable) {
+      setLlmUnavailable(true);
+    }
+  }, [defaultQuery.data]);
 
   const sessionQuery = useChatSession(sessionId || null);
   const sendMutation = useSendChatMessage(sessionId || null);
@@ -140,6 +154,7 @@ export function ChatShell() {
       messages: outgoingMessages,
       mode,
       sessionId,
+      ...(settings?.llmModel ? { model: settings.llmModel } : {}),
       ...(serverContext
         ? { portfolioContext: stripDerivedComplete(serverContext) }
         : {}),
@@ -216,8 +231,8 @@ export function ChatShell() {
                 <AlertTriangle size={14} className="mt-0.5" aria-hidden />
                 <div>
                   <strong className="font-semibold">LLM unavailable.</strong>{" "}
-                  The backend couldn&apos;t reach OpenAI (likely{" "}
-                  <code>OPENAI_API_KEY</code> is unset). Rule-based answers
+                  The backend couldn&apos;t reach OpenRouter (likely{" "}
+                  <code>OPENROUTER_API_KEY</code> is unset). Rule-based answers
                   still work; the LLM toggle is disabled.
                 </div>
               </div>
@@ -324,7 +339,7 @@ export function ChatShell() {
                 return disabled ? (
                   <Tooltip
                     key={opt.value}
-                    label="OPENAI_API_KEY is unset on the backend (LLM_UNAVAILABLE)."
+                    label="OPENROUTER_API_KEY is unset on the backend (LLM_UNAVAILABLE)."
                   >
                     {control}
                   </Tooltip>
@@ -334,6 +349,15 @@ export function ChatShell() {
                   </Tooltip>
                 );
               })}
+              {settings ? (
+                <Tooltip
+                  label={`Chat LLM model (change in Settings). OpenRouter default: ${defaultQuery.data?.defaultModel ?? "google/gemma-4-31b-it"}.`}
+                >
+                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[10px] text-slate-600">
+                    model: {settings.llmModel}
+                  </span>
+                </Tooltip>
+              ) : null}
               <button
                 type="button"
                 onClick={handleClear}

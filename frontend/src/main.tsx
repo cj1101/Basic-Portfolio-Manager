@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import App from "./App";
 import { PortfolioProvider } from "./state/portfolioContext";
+import { SettingsProvider } from "./state/settingsContext";
 import "./index.css";
 
 const rootElement = document.getElementById("root");
@@ -27,9 +28,11 @@ const queryClient = new QueryClient({
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
-      <PortfolioProvider>
-        <App />
-      </PortfolioProvider>
+      <SettingsProvider>
+        <PortfolioProvider>
+          <App />
+        </PortfolioProvider>
+      </SettingsProvider>
     </QueryClientProvider>
   </React.StrictMode>,
 );

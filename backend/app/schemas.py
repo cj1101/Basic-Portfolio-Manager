@@ -127,6 +127,12 @@ class ChatRequest(_CamelModel):
     portfolio_context: OptimizationResult | None = None
     mode: ChatMode = ChatMode.AUTO
     session_id: str | None = None
+    # OpenRouter model slug selected by the user in the frontend Settings
+    # panel. When ``None``, the backend uses the default from ``OPENROUTER_MODEL``.
+    # The slug is validated against a safe charset before being forwarded.
+    model: Annotated[str, StringConstraints(pattern=r"^[a-zA-Z0-9][a-zA-Z0-9\-._:/]{0,99}$")] | None = (
+        None
+    )
 
 
 class ChatResponse(_CamelModel):

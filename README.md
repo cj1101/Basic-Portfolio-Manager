@@ -83,6 +83,39 @@ Dependency pins:
 - `typescript 5.5`, `vitest 1.6`, `tsup 8.1`. TypeScript has **zero runtime
   dependencies** — the linear-algebra routines are hand-rolled for determinism.
 
+## Run the whole product (one command)
+
+```powershell
+# From the repo root — starts FastAPI + Vite together with DEBUG logs,
+# colored [backend]/[frontend] prefixes, and a timestamped log file in
+# backend/.logs/dev-<stamp>.log.
+pnpm dev:all
+# or, without pnpm:
+python scripts/dev.py
+```
+
+Useful flags:
+
+```powershell
+python scripts/dev.py --no-frontend          # just the API
+python scripts/dev.py --no-backend           # just the UI
+python scripts/dev.py --port 9000            # backend on :9000
+python scripts/dev.py --log-level INFO       # less verbose
+```
+
+The backend chat endpoint uses **OpenRouter** for every LLM call. Configure
+it via `backend/.env`:
+
+```
+OPENROUTER_API_KEY=sk-or-v1-…
+OPENROUTER_MODEL=google/gemma-4-31b-it
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+```
+
+The frontend Settings panel (gear icon in the header) lets you override the
+model per-session — the list is fetched live from OpenRouter and cached on
+the backend for 5 minutes.
+
 ## Running tests
 
 ### Python (backend)

@@ -146,7 +146,7 @@ def test_rule_miss_answer_rule_mode():
 
 def test_rule_miss_answer_auto_mode():
     answer, citations = rule_miss_answer("auto")
-    assert "OPENAI_API_KEY" in answer
+    assert "OPENROUTER_API_KEY" in answer
     assert citations == []
 
 

@@ -176,6 +176,32 @@ export interface ChatRequest {
   portfolioContext?: OptimizationResult;
   mode?: ChatMode;
   sessionId?: string;
+  /** OpenRouter model slug (e.g. "google/gemma-4-31b-it"). */
+  model?: string;
+}
+
+export interface LLMModelPricing {
+  prompt?: string;
+  completion?: string;
+}
+
+export interface LLMModel {
+  id: string;
+  name: string;
+  contextLength?: number;
+  pricing?: LLMModelPricing;
+}
+
+export interface LLMModelsResponse {
+  models: LLMModel[];
+  cached: boolean;
+  fetchedAt: number;
+}
+
+export interface LLMDefaultResponse {
+  llmAvailable: boolean;
+  defaultModel: string;
+  baseUrl: string;
 }
 
 export interface ChatCitation {

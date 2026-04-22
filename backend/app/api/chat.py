@@ -45,6 +45,7 @@ async def post_chat(
         messages=list(body.messages),
         context=body.portfolio_context,
         mode=body.mode,
+        model=body.model,
     )
     if body.session_id:
         await _persist_turn(chat_store, body.session_id, body.messages, response)
@@ -94,6 +95,7 @@ async def post_chat_session_message(
         messages=list(body.messages),
         context=body.portfolio_context,
         mode=body.mode,
+        model=body.model,
     )
     await _persist_turn(chat_store, session_id, body.messages, response)
     return response

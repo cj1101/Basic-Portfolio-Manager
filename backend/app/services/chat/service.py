@@ -2,7 +2,7 @@
 
 The service decides between the rule engine and the LLM based on the
 user-selected :class:`~app.schemas.ChatMode` and the presence of an
-``OpenAIChatClient``:
+``OpenRouterChatClient``:
 
 ===== =============================================================
 mode  behaviour
@@ -31,7 +31,7 @@ from app.schemas import (
     OptimizationResult,
 )
 from app.services.chat.intent import classify_intent
-from app.services.chat.llm import OpenAIChatClient
+from app.services.chat.llm import OpenRouterChatClient
 from app.services.chat.rules import render_rule_answer, rule_miss_answer
 
 logger = logging.getLogger(__name__)
@@ -40,18 +40,24 @@ logger = logging.getLogger(__name__)
 class ChatService:
     """Orchestrates the hybrid chat engine."""
 
-    def __init__(self, llm: OpenAIChatClient | None = None) -> None:
+    def __init__(self, llm: OpenRouterChatClient | None = None) -> None:
         self._llm = llm
 
     @property
     def llm_available(self) -> bool:
         return self._llm is not None
 
+    @property
+    def default_model(self) -> str | None:
+        return self._llm.model if self._llm is not None else None
+
     async def answer(
         self,
         messages: list[ChatMessage],
         context: OptimizationResult | None,
         mode: ChatMode = ChatMode.AUTO,
+        *,
+        model: str | None = None,
     ) -> ChatResponse:
         if not messages:
             raise AppError(ErrorCode.INTERNAL, "ChatService.answer requires at least one message.")
@@ -63,7 +69,7 @@ class ChatService:
             )
 
         if mode == ChatMode.LLM:
-            return await self._answer_with_llm(messages, context)
+            return await self._answer_with_llm(messages, context, model=model)
 
         # rule or auto: always attempt classification first.
         known = list(context.orp.weights.keys()) if context is not None else []
@@ -75,7 +81,7 @@ class ChatService:
 
         if mode == ChatMode.AUTO and self._llm is not None:
             logger.info("chat: rule miss, falling back to LLM")
-            return await self._answer_with_llm(messages, context)
+            return await self._answer_with_llm(messages, context, model=model)
 
         miss, citations = rule_miss_answer(mode.value)
         return ChatResponse(answer=miss, source=ChatSource.RULE, citations=citations)
@@ -84,18 +90,24 @@ class ChatService:
         self,
         messages: list[ChatMessage],
         context: OptimizationResult | None,
+        *,
+        model: str | None = None,
     ) -> ChatResponse:
         if self._llm is None:
             raise AppError(
                 ErrorCode.LLM_UNAVAILABLE,
-                "The OpenAI LLM is not configured on this backend.",
-                {"reason": "openai_api_key_missing"},
+                "The OpenRouter LLM is not configured on this backend.",
+                {"reason": "openrouter_api_key_missing"},
             )
-        answer = await self._llm.answer(messages, context)
+        result = await self._llm.answer(messages, context, model=model)
+        if isinstance(result, tuple):
+            answer, model_used = result
+        else:  # pragma: no cover — defensive for test doubles returning a str
+            answer, model_used = result, (model or self._llm.model)
         return ChatResponse(
             answer=answer,
             source=ChatSource.LLM,
-            citations=_llm_context_citations(context),
+            citations=_llm_context_citations(context, model_used),
         )
 
 
@@ -106,25 +118,35 @@ def _last_user_message(messages: list[ChatMessage]) -> ChatMessage | None:
     return None
 
 
-def _llm_context_citations(context: OptimizationResult | None) -> list[ChatCitation]:
+def _llm_context_citations(
+    context: OptimizationResult | None,
+    model_used: str | None = None,
+) -> list[ChatCitation]:
     """Publish the high-level portfolio numbers the LLM was given.
 
     Even though the LLM may or may not use them, surfacing the canonical
     inputs gives the user provenance over what the model saw — identical to
-    how rule answers cite every scalar they mention.
+    how rule answers cite every scalar they mention. When ``model_used`` is
+    provided we also publish it so the UI can show "answered by <model>".
     """
 
+    citations: list[ChatCitation] = []
+    if model_used:
+        citations.append(ChatCitation(label="model", value=model_used))
     if context is None:
-        return []
+        return citations
     orp = context.orp
     comp = context.complete
-    return [
-        ChatCitation(label="ORP expected return", value=f"{orp.expected_return:.4f}"),
-        ChatCitation(label="ORP std dev", value=f"{orp.std_dev:.4f}"),
-        ChatCitation(label="ORP Sharpe", value=f"{orp.sharpe:.4f}"),
-        ChatCitation(label="y*", value=f"{comp.y_star:.4f}"),
-        ChatCitation(label="risk-free rate", value=f"{context.risk_free_rate:.4f}"),
-    ]
+    citations.extend(
+        [
+            ChatCitation(label="ORP expected return", value=f"{orp.expected_return:.4f}"),
+            ChatCitation(label="ORP std dev", value=f"{orp.std_dev:.4f}"),
+            ChatCitation(label="ORP Sharpe", value=f"{orp.sharpe:.4f}"),
+            ChatCitation(label="y*", value=f"{comp.y_star:.4f}"),
+            ChatCitation(label="risk-free rate", value=f"{context.risk_free_rate:.4f}"),
+        ]
+    )
+    return citations
 
 
 __all__ = ["ChatService"]

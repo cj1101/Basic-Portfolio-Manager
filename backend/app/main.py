@@ -27,7 +27,7 @@ from app.errors import (
     unhandled_exception_handler,
     validation_handler,
 )
-from app.services.chat.llm import build_openai_client
+from app.services.chat.llm import build_openrouter_client
 from app.services.chat.service import ChatService
 from app.settings import Settings, get_settings
 
@@ -80,10 +80,12 @@ async def build_state(settings: Settings) -> AppState:
     chat_store = ChatStore(settings.cache_db_path)
     await chat_store.connect()
 
-    openai_client = build_openai_client(settings)
-    if openai_client is None:
-        logger.info("OPENAI_API_KEY is not set; /api/chat will operate in rule-only mode.")
-    chat_service = ChatService(llm=openai_client)
+    openrouter_client = build_openrouter_client(settings)
+    if openrouter_client is None:
+        logger.info(
+            "OPENROUTER_API_KEY is not set; /api/chat will operate in rule-only mode."
+        )
+    chat_service = ChatService(llm=openrouter_client)
 
     return AppState(
         settings=settings,

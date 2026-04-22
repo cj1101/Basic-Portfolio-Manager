@@ -165,7 +165,7 @@ def rule_miss_answer(mode: str) -> tuple[str, list[ChatCitation]]:
         )
     return (
         "I couldn't classify that question and the LLM fallback is not "
-        "configured. Set OPENAI_API_KEY on the backend or try one of the "
+        "configured. Set OPENROUTER_API_KEY on the backend or try one of the "
         "sample prompts.",
         [],
     )
