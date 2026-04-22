@@ -11,22 +11,38 @@
  * to `http://localhost:8000`. Override via `VITE_API_BASE_URL` in production.
  */
 import type {
+  AnalyticsPerformanceRequest,
+  AnalyticsPerformanceResult,
   ChatRequest,
   ChatResponse,
   ChatSessionResponse,
   ErrorCode,
   LLMDefaultResponse,
   LLMModelsResponse,
+  UpdateApiKeyRequest,
+  UpdateApiKeyResponse,
   OptimizationRequest,
   OptimizationResult,
+  ValuationRequest,
+  ValuationResult,
 } from "@/types/contracts";
 
 const DEFAULT_BASE = "/api";
 
+/**
+ * Resolves the `/api` prefix for requests. In dev, default `"/api"` is proxied by Vite.
+ * When `VITE_API_BASE_URL` is an absolute origin (e.g. `http://localhost:8000`), we append
+ * `/api` if missing so paths like `/optimize` hit `http://localhost:8000/api/optimize`, not
+ * `.../optimize` (which 404s).
+ */
 function resolveBaseUrl(): string {
   const envBase = import.meta.env?.VITE_API_BASE_URL;
   if (typeof envBase === "string" && envBase.length > 0) {
-    return envBase.replace(/\/+$/, "");
+    const trimmed = envBase.replace(/\/+$/, "");
+    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+      return trimmed.endsWith("/api") ? trimmed : `${trimmed}/api`;
+    }
+    return trimmed;
   }
   return DEFAULT_BASE;
 }
@@ -146,6 +162,28 @@ export function postOptimize(
   });
 }
 
+export function postAnalyticsPerformance(
+  body: AnalyticsPerformanceRequest,
+  init?: RequestInit,
+): Promise<AnalyticsPerformanceResult> {
+  return request<AnalyticsPerformanceResult>("/analytics/performance", {
+    ...init,
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function postValuation(
+  body: ValuationRequest,
+  init?: RequestInit,
+): Promise<ValuationResult> {
+  return request<ValuationResult>("/valuation", {
+    ...init,
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export interface RiskFreeRateResponse {
   rate: number;
   asOf: string;
@@ -221,4 +259,15 @@ export function getLlmModels(init?: RequestInit): Promise<LLMModelsResponse> {
 
 export function getLlmDefault(init?: RequestInit): Promise<LLMDefaultResponse> {
   return request<LLMDefaultResponse>("/llm/default", init);
+}
+
+export function patchApiKey(
+  body: UpdateApiKeyRequest,
+  init?: RequestInit,
+): Promise<UpdateApiKeyResponse> {
+  return request<UpdateApiKeyResponse>("/settings/api-keys", {
+    ...init,
+    method: "PATCH",
+    body: JSON.stringify(body),
+  });
 }

@@ -6,12 +6,14 @@ live in sibling packages owned by other agents; see ``docs/SPEC.md`` §9.
 The public surface is:
 
 - Types: :class:`StockMetrics`, :class:`MarketMetrics`, :class:`CovarianceMatrix`,
+  :class:`CorrelationMatrix`,
   :class:`RiskProfile`, :class:`ORP`, :class:`CompletePortfolio`,
   :class:`FrontierPoint`, :class:`CALPoint`, :class:`OptimizationResult`,
   :class:`ReturnFrequency`.
 - Errors: :class:`QuantError` hierarchy and :class:`ErrorCode`.
-- Linear algebra: :func:`build_covariance`, :func:`nearest_psd`,
-  :func:`is_symmetric`, :func:`is_psd`, :func:`ensure_psd_covariance`.
+- Linear algebra: :func:`build_covariance`, :func:`covariance_to_correlation`,
+  :func:`nearest_psd`, :func:`is_symmetric`, :func:`is_psd`,
+  :func:`ensure_psd_covariance`.
 - Returns: :func:`expected_returns`, :func:`std_devs`, :func:`sample_covariance`,
   :func:`annualize_mean`, :func:`annualize_std`, :func:`annualize_variance`.
 - Sharpe: :func:`sharpe_ratio`.
@@ -34,6 +36,13 @@ from .capm import (
     capm_total_std_dev,
     capm_total_variance,
 )
+from .fama_french_3 import (
+    annualize_alpha_monthly,
+    capm_expected_return_annualized,
+    expected_return_from_monthly_sample_means,
+    fama_french_capm_regression_mkt,
+    fama_french_three_regression,
+)
 from .errors import (
     ErrorCode,
     InsufficientHistoryError,
@@ -44,12 +53,20 @@ from .errors import (
     OptimizerNonPSDCovarianceError,
     QuantError,
 )
+from .holding_period_monthly import mean_monthly_arithmetic_geometric, simple_monthly_returns_from_close_series
+from .portfolio_risk import (
+    portfolio_beta,
+    sim_portfolio_variance_decomposition,
+    total_variance_from_covariance,
+)
+from .treynor import treynor_ratio
 from .frontier import cal_points, efficient_frontier_points
 from .linalg import (
     PROJECTION_FLOOR,
     PSD_TOL,
     SYMMETRY_TOL,
     build_covariance,
+    covariance_to_correlation,
     ensure_psd_covariance,
     is_psd,
     is_symmetric,
@@ -73,6 +90,7 @@ from .types import (
     ORP,
     CALPoint,
     CompletePortfolio,
+    CorrelationMatrix,
     CovarianceMatrix,
     FrontierPoint,
     MarketMetrics,
@@ -93,6 +111,7 @@ __all__ = [
     "SYMMETRY_TOL",
     "CALPoint",
     "CompletePortfolio",
+    "CorrelationMatrix",
     "CovarianceMatrix",
     "ErrorCode",
     "FrontierPoint",
@@ -112,11 +131,14 @@ __all__ = [
     "Ticker",
     "__version__",
     "annualization_factor",
+    "annualize_alpha_monthly",
     "annualize_mean",
     "annualize_std",
     "annualize_variance",
+    "capm_expected_return_annualized",
     "build_covariance",
     "cal_points",
+    "covariance_to_correlation",
     "capm_required_return",
     "capm_systematic_variance",
     "capm_total_expected_return",
@@ -124,15 +146,24 @@ __all__ = [
     "capm_total_variance",
     "efficient_frontier_points",
     "ensure_psd_covariance",
+    "expected_return_from_monthly_sample_means",
     "expected_returns",
+    "fama_french_capm_regression_mkt",
+    "fama_french_three_regression",
     "is_psd",
     "is_symmetric",
+    "mean_monthly_arithmetic_geometric",
     "minimum_variance_portfolio",
     "nearest_psd",
     "optimize_markowitz",
+    "portfolio_beta",
     "sample_covariance",
     "sharpe_ratio",
+    "simple_monthly_returns_from_close_series",
+    "sim_portfolio_variance_decomposition",
     "single_index_metrics",
     "std_devs",
+    "total_variance_from_covariance",
+    "treynor_ratio",
     "utility_max_allocation",
 ]

@@ -2,13 +2,14 @@ import clsx from "clsx";
 import {
   BarChart3,
   Compass,
+  GraduationCap,
   LineChart as LineChartIcon,
   PieChart,
   Database,
   type LucideIcon,
 } from "lucide-react";
 
-export type TabId = "overview" | "frontier" | "capm" | "allocation" | "data";
+export type TabId = "overview" | "frontier" | "capm" | "allocation" | "course" | "data";
 
 export interface TabDefinition {
   id: TabId;
@@ -42,6 +43,12 @@ export const TABS: TabDefinition[] = [
     label: "3. Asset Allocation",
     shortLabel: "Allocation",
     Icon: PieChart,
+  },
+  {
+    id: "course",
+    label: "4. Risk & Valuation",
+    shortLabel: "4. Risk & Val",
+    Icon: GraduationCap,
   },
   {
     id: "data",

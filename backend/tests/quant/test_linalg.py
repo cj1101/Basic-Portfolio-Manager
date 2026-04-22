@@ -10,6 +10,7 @@ from quant.linalg import (
     PSD_TOL,
     SYMMETRY_TOL,
     build_covariance,
+    covariance_to_correlation,
     ensure_psd_covariance,
     is_psd,
     is_symmetric,
@@ -43,6 +44,25 @@ class TestBuildCovariance:
     def test_negative_std_dev_raises(self) -> None:
         with pytest.raises(ValueError):
             build_covariance([-0.1, 0.2], np.eye(2))
+
+
+class TestCovarianceToCorrelation:
+    def test_round_trip_with_build_covariance(self) -> None:
+        sigma = np.array([0.15, 0.20, 0.30])
+        rho_in = np.array([[1.0, 0.3, 0.1], [0.3, 1.0, 0.2], [0.1, 0.2, 1.0]])
+        cov = build_covariance(sigma, rho_in)
+        rho_out = covariance_to_correlation(cov)
+        np.testing.assert_allclose(rho_out, rho_in, atol=1e-9)
+        assert float(np.min(np.diag(rho_out))) == pytest.approx(1.0, abs=1e-12)
+
+    def test_non_square_raises(self) -> None:
+        with pytest.raises(ValueError, match="square"):
+            covariance_to_correlation(np.zeros((2, 3)))
+
+    def test_nonpositive_diagonal_raises(self) -> None:
+        m = np.diag([0.04, -0.01])
+        with pytest.raises(ValueError, match="positive"):
+            covariance_to_correlation(m)
 
 
 class TestIsSymmetricIsPSD:

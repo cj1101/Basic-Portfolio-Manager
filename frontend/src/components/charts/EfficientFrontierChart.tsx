@@ -54,33 +54,37 @@ function buildMarkowitzCurve(
 
   const solveLinear = (lhs: number[][], rhs: number[]): number[] | null => {
     const size = rhs.length;
-    const aug = lhs.map((row, index) => [...row, rhs[index]]);
+    const aug: number[][] = lhs.map((row, index) => [...row, rhs[index]!]);
     for (let col = 0; col < size; col += 1) {
       let pivot = col;
       for (let row = col + 1; row < size; row += 1) {
-        if (Math.abs(aug[row][col]) > Math.abs(aug[pivot][col])) {
+        if (Math.abs(aug[row]![col]!) > Math.abs(aug[pivot]![col]!)) {
           pivot = row;
         }
       }
-      if (Math.abs(aug[pivot][col]) < 1e-12) {
+      if (Math.abs(aug[pivot]![col]!) < 1e-12) {
         return null;
       }
       if (pivot !== col) {
-        [aug[col], aug[pivot]] = [aug[pivot], aug[col]];
+        const t = aug[col]!;
+        aug[col] = aug[pivot]!;
+        aug[pivot] = t;
       }
-      const pivotValue = aug[col][col];
+      const curRow = aug[col]!;
+      const pivotValue = curRow[col]!;
       for (let j = col; j <= size; j += 1) {
-        aug[col][j] /= pivotValue;
+        curRow[j]! /= pivotValue;
       }
       for (let row = 0; row < size; row += 1) {
         if (row === col) continue;
-        const factor = aug[row][col];
+        const r = aug[row]!;
+        const factor = r[col]!;
         for (let j = col; j <= size; j += 1) {
-          aug[row][j] -= factor * aug[col][j];
+          r[j]! -= factor * curRow[j]!;
         }
       }
     }
-    return aug.map((row) => row[size]);
+    return aug.map((row) => row[size]!);
   };
 
   const sigmaInvOnes = solveLinear(matrix, Array.from({ length: n }, () => 1));
@@ -90,8 +94,8 @@ function buildMarkowitzCurve(
   }
 
   const aConst = sigmaInvOnes.reduce((sum, value) => sum + value, 0);
-  const bConst = sigmaInvMeans.reduce((sum, value, index) => sum + value, 0);
-  const cConst = means.reduce((sum, value, index) => sum + value * sigmaInvMeans[index], 0);
+  const bConst = sigmaInvMeans.reduce((sum, value) => sum + value, 0);
+  const cConst = means.reduce((sum, value, idx) => sum + value * sigmaInvMeans[idx]!, 0);
   const dConst = aConst * cConst - bConst * bConst;
   if (aConst <= 0 || dConst <= 1e-12) {
     return frontier.map((point, index) => ({ ...point, isEfficient: index !== 0 }));

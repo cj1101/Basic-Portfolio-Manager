@@ -3,6 +3,7 @@ import {
   ApiError,
   deleteChatSession,
   getChatSession,
+  patchApiKey,
   postChat,
   postChatSessionMessage,
   postOptimize,
@@ -197,5 +198,34 @@ describe("api.ts chat endpoints", () => {
       "/api/chat/sessions/weird%20id%2Fwith%20slash",
     );
     expect((init as RequestInit).method).toBe("DELETE");
+  });
+});
+
+describe("api.ts settings endpoints", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("PATCHes /api/settings/api-keys", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      mockResponse({
+        updated: true,
+        created: false,
+        restartRequired: true,
+        requiresConfirmation: false,
+        message: "updated",
+      }),
+    );
+
+    const res = await patchApiKey({
+      keyName: "OPENROUTER_API_KEY",
+      newValue: "new-key",
+      confirmOverwrite: true,
+    });
+
+    expect(res.updated).toBe(true);
+    const [url, init] = fetchSpy.mock.calls[0]!;
+    expect(String(url)).toContain("/api/settings/api-keys");
+    expect((init as RequestInit).method).toBe("PATCH");
   });
 });

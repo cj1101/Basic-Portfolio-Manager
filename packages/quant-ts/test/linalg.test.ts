@@ -5,6 +5,7 @@ import {
   PSD_TOL,
   SYMMETRY_TOL,
   buildCovariance,
+  covarianceToCorrelation,
   ensurePsdCovariance,
   isPsd,
   isSymmetric,
@@ -59,6 +60,37 @@ describe("buildCovariance", () => {
           [0, 1],
         ],
       ),
+    ).toThrow();
+  });
+});
+
+describe("covarianceToCorrelation", () => {
+  it("inverts buildCovariance on a reference correlation", () => {
+    const sigma = [0.15, 0.2, 0.3];
+    const rhoIn = [
+      [1, 0.3, 0.1],
+      [0.3, 1, 0.2],
+      [0.1, 0.2, 1],
+    ];
+    const cov = buildCovariance(sigma, rhoIn);
+    const rhoOut = covarianceToCorrelation(cov);
+    for (let i = 0; i < 3; i += 1) {
+      for (let j = 0; j < 3; j += 1) {
+        expect(rhoOut[i]?.[j]).toBeCloseTo(rhoIn[i]?.[j] ?? NaN, 6);
+      }
+    }
+  });
+
+  it("throws on non-square input", () => {
+    expect(() => covarianceToCorrelation([[1, 2]])).toThrow();
+  });
+
+  it("throws on non-positive diagonal variance", () => {
+    expect(() =>
+      covarianceToCorrelation([
+        [0.04, 0],
+        [0, -0.01],
+      ]),
     ).toThrow();
   });
 });

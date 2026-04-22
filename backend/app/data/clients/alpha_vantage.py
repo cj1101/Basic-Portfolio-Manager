@@ -7,6 +7,8 @@ Supported endpoints:
 
 * ``TIME_SERIES_DAILY_ADJUSTED``  — historical daily OHLCV + adjusted close.
 * ``GLOBAL_QUOTE``                — latest price snapshot.
+* ``INCOME_STATEMENT``, ``BALANCE_SHEET``, ``CASH_FLOW`` — company fundamentals.
+* ``OVERVIEW``                    — high-level ratios and `SharesOutstanding` / dividends.
 
 Alpha Vantage returns HTTP 200 for soft rate-limit / quota violations with a
 ``Note`` or ``Information`` string in the JSON body. We detect these and
@@ -161,6 +163,54 @@ class AlphaVantageClient:
             ) from exc
         return {"ticker": ticker, "price": price, "as_of": as_of}
 
+    async def get_income_statement(self, ticker: str) -> dict[str, Any]:
+        payload = await self._get(
+            {
+                "function": "INCOME_STATEMENT",
+                "symbol": ticker,
+                "datatype": "json",
+            }
+        )
+        if not payload.get("annualReports"):
+            raise UnknownTickerError(ticker)
+        return payload
+
+    async def get_balance_sheet(self, ticker: str) -> dict[str, Any]:
+        payload = await self._get(
+            {
+                "function": "BALANCE_SHEET",
+                "symbol": ticker,
+                "datatype": "json",
+            }
+        )
+        if not payload.get("annualReports"):
+            raise UnknownTickerError(ticker)
+        return payload
+
+    async def get_cash_flow(self, ticker: str) -> dict[str, Any]:
+        payload = await self._get(
+            {
+                "function": "CASH_FLOW",
+                "symbol": ticker,
+                "datatype": "json",
+            }
+        )
+        if not payload.get("annualReports"):
+            raise UnknownTickerError(ticker)
+        return payload
+
+    async def get_overview(self, ticker: str) -> dict[str, Any]:
+        payload = await self._get(
+            {
+                "function": "OVERVIEW",
+                "symbol": ticker,
+                "datatype": "json",
+            }
+        )
+        if not payload.get("Symbol"):
+            raise UnknownTickerError(ticker)
+        return payload
+
 
 def _check_soft_errors(payload: dict[str, Any]) -> None:
     """Alpha Vantage returns 200 with an error string on quota / bad symbol."""
@@ -173,15 +223,19 @@ def _check_soft_errors(payload: dict[str, Any]) -> None:
     note = payload.get("Note") or payload.get("Information")
     if note:
         lowered = note.lower()
-        if "premium" in lowered or "higher" in lowered or "api key" in lowered:
-            raise ProviderUnavailableError(PROVIDER_NAME, note)
-        if (
+        # AV often mentions "premium" in the same Note as free-tier throttling; classify
+        # rate-limit language first so we return 429 + Retry-After instead of 503.
+        rate_limited = (
             "thank you for using" in lowered
             or "api rate limit" in lowered
             or "requests per minute" in lowered
             or "requests per day" in lowered
-        ):
-            raise RateLimitError(PROVIDER_NAME, 60.0, scope="minute")
+            or "sparingly" in lowered
+        )
+        if rate_limited:
+            raise RateLimitError(PROVIDER_NAME, 1.2, scope="minute")
+        if "premium" in lowered or "higher" in lowered or "api key" in lowered:
+            raise ProviderUnavailableError(PROVIDER_NAME, note)
         raise ProviderUnavailableError(PROVIDER_NAME, note)
 
 

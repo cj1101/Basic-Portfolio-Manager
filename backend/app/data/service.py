@@ -343,6 +343,74 @@ class DataService:
         await self._cache.put_risk_free_rate(FRED_FALLBACK_RATE, fallback_as_of, "FALLBACK")
         return RiskFreeRateResult(FRED_FALLBACK_RATE, fallback_as_of, "FALLBACK", warnings)
 
+    # ------------------------------------------------------------------
+    # Fundamentals (Alpha Vantage only — no Yahoo substitute)
+    # ------------------------------------------------------------------
+
+    async def get_income_statement_json(self, ticker: str) -> dict[str, Any]:
+        ticker = _normalize_ticker(ticker)
+        if self._av is None:
+            raise ProviderUnavailableError("alpha-vantage", "fundamentals require ALPHA_VANTAGE_API_KEY")
+        key = f"fundamentals:{ticker}:income"
+        cached = await self._cache.get_fundamentals(ticker, "income")
+        if cached is not None:
+            return cached
+
+        async def _load() -> dict[str, Any]:
+            d = await self._av.get_income_statement(ticker)
+            await self._cache.put_fundamentals(ticker, "income", d, "alpha-vantage")
+            return d
+
+        return await self._cache.run_singleflight(key, _load)
+
+    async def get_balance_sheet_json(self, ticker: str) -> dict[str, Any]:
+        ticker = _normalize_ticker(ticker)
+        if self._av is None:
+            raise ProviderUnavailableError("alpha-vantage", "fundamentals require ALPHA_VANTAGE_API_KEY")
+        key = f"fundamentals:{ticker}:balance"
+        cached = await self._cache.get_fundamentals(ticker, "balance")
+        if cached is not None:
+            return cached
+
+        async def _load() -> dict[str, Any]:
+            d = await self._av.get_balance_sheet(ticker)
+            await self._cache.put_fundamentals(ticker, "balance", d, "alpha-vantage")
+            return d
+
+        return await self._cache.run_singleflight(key, _load)
+
+    async def get_cash_flow_json(self, ticker: str) -> dict[str, Any]:
+        ticker = _normalize_ticker(ticker)
+        if self._av is None:
+            raise ProviderUnavailableError("alpha-vantage", "fundamentals require ALPHA_VANTAGE_API_KEY")
+        key = f"fundamentals:{ticker}:cashflow"
+        cached = await self._cache.get_fundamentals(ticker, "cashflow")
+        if cached is not None:
+            return cached
+
+        async def _load() -> dict[str, Any]:
+            d = await self._av.get_cash_flow(ticker)
+            await self._cache.put_fundamentals(ticker, "cashflow", d, "alpha-vantage")
+            return d
+
+        return await self._cache.run_singleflight(key, _load)
+
+    async def get_overview_json(self, ticker: str) -> dict[str, Any]:
+        ticker = _normalize_ticker(ticker)
+        if self._av is None:
+            raise ProviderUnavailableError("alpha-vantage", "fundamentals require ALPHA_VANTAGE_API_KEY")
+        key = f"fundamentals:{ticker}:overview"
+        cached = await self._cache.get_fundamentals(ticker, "overview")
+        if cached is not None:
+            return cached
+
+        async def _load() -> dict[str, Any]:
+            d = await self._av.get_overview(ticker)
+            await self._cache.put_fundamentals(ticker, "overview", d, "alpha-vantage")
+            return d
+
+        return await self._cache.run_singleflight(key, _load)
+
 
 _TICKER_RE = re.compile(r"[A-Z0-9.]{1,10}")
 

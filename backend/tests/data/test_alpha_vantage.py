@@ -51,6 +51,21 @@ async def test_get_quote_soft_rate_limit(cache, load_fixture):
                 await client.get_quote("AAPL")
 
 
+async def test_throttle_note_with_premium_word_is_rate_limit_not_503_shape(cache):
+    """AV often mentions 'premium' in the same Note as free-tier throttling."""
+    payload = {
+        "Note": (
+            "Thank you for using Alpha Vantage! Please spread out requests. "
+            "Subscribe to premium at https://www.alphavantage.co/premium/"
+        )
+    }
+    async with respx.mock(assert_all_mocked=True) as mock:
+        mock.get(BASE_URL).mock(return_value=httpx.Response(200, json=payload))
+        async with await _client(cache) as client:
+            with pytest.raises(RateLimitError):
+                await client.get_quote("AAPL")
+
+
 async def test_get_quote_http_429_maps_to_rate_limit(cache):
     async with respx.mock(assert_all_mocked=True) as mock:
         mock.get(BASE_URL).mock(

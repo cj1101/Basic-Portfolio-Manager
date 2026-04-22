@@ -44,3 +44,7 @@ backend/.cache/
 !**/.env.example
 !.env.sample
 !**/.env.sample
+
+# Dev / debug logs (local only)
+backend/.logs/
+debug-*.log

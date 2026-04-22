@@ -50,6 +50,30 @@ def build_covariance(
     return 0.5 * (cov + cov.T)
 
 
+def covariance_to_correlation(
+    cov: NDArray[np.float64] | list[list[float]],
+) -> NDArray[np.float64]:
+    """Map a square covariance matrix Σ to the correlation matrix ρ.
+
+    ``ρᵢⱼ = Σᵢⱼ / (σᵢ σⱼ)`` with ``σᵢ = sqrt(Σᵢᵢ)``; the diagonal is forced to
+    1.0 to remove float drift. Raises ``ValueError`` if any diagonal entry is
+    not strictly positive or if standard deviations are non-finite.
+    """
+    a = np.asarray(cov, dtype=np.float64)
+    if a.ndim != 2 or a.shape[0] != a.shape[1]:
+        raise ValueError("covariance_to_correlation requires a square 2D matrix")
+    variances = np.diag(a)
+    if not np.all(np.isfinite(variances)):
+        raise ValueError("covariance diagonal must be finite")
+    if np.any(variances <= 0.0):
+        raise ValueError("covariance diagonal variances must be positive for correlation")
+    std_devs = np.sqrt(variances)
+    outer = std_devs[:, None] * std_devs[None, :]
+    rho = a / outer
+    np.fill_diagonal(rho, 1.0)
+    return 0.5 * (rho + rho.T)
+
+
 def is_symmetric(m: NDArray[np.float64], tol: float = SYMMETRY_TOL) -> bool:
     a = np.asarray(m, dtype=np.float64)
     if a.ndim != 2 or a.shape[0] != a.shape[1]:
@@ -138,6 +162,7 @@ __all__ = [
     "PSD_TOL",
     "SYMMETRY_TOL",
     "build_covariance",
+    "covariance_to_correlation",
     "ensure_psd_covariance",
     "is_psd",
     "is_symmetric",

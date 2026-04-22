@@ -60,6 +60,7 @@ class ErrorCode(str, Enum):
     INVALID_RISK_PROFILE = "INVALID_RISK_PROFILE"
     INVALID_RETURN_WINDOW = "INVALID_RETURN_WINDOW"
     LLM_UNAVAILABLE = "LLM_UNAVAILABLE"
+    INVALID_VALUATION = "INVALID_VALUATION"
     INTERNAL = "INTERNAL"
 ```
 
@@ -74,6 +75,7 @@ export type ErrorCode =
   | "INVALID_RISK_PROFILE"
   | "INVALID_RETURN_WINDOW"
   | "LLM_UNAVAILABLE"
+  | "INVALID_VALUATION"
   | "INTERNAL";
 ```
 
@@ -227,6 +229,23 @@ export interface CovarianceMatrix {
 }
 ```
 
+### `CorrelationMatrix`
+
+Dense **correlation** matrix: symmetric, unit diagonal, entries in `[-1, 1]`. Same row/column labels and ordering as `CovarianceMatrix` for a given run (`ρᵢⱼ = Covᵢⱼ / (σᵢ σⱼ)` with `σᵢ² = Varᵢ` on the diagonal of the paired covariance matrix).
+
+```python
+class CorrelationMatrix(BaseModel):
+    tickers: list[Ticker]
+    matrix: list[list[float]]           # shape [n][n]
+```
+
+```ts
+export interface CorrelationMatrix {
+  tickers: Ticker[];
+  matrix: number[][];        // shape [n][n]
+}
+```
+
 ### `RiskProfile`
 
 The client's personalization inputs.
@@ -280,6 +299,7 @@ class OptimizationResult(BaseModel):
     market: MarketMetrics
     stocks: list[StockMetrics]
     covariance: CovarianceMatrix
+    correlation: CorrelationMatrix
     orp: ORP
     complete: CompletePortfolio
     frontier_points: list[FrontierPoint]
@@ -320,6 +340,7 @@ export interface OptimizationResult {
   market: MarketMetrics;
   stocks: StockMetrics[];
   covariance: CovarianceMatrix;
+  correlation: CorrelationMatrix;
   orp: ORP;
   complete: CompletePortfolio;
   frontierPoints: FrontierPoint[];
@@ -396,6 +417,220 @@ export interface BacktestResult {
   maxDrawdown: number;
   rebalanceCount: number;
   comparedToSpy: EquityPoint;
+}
+```
+
+### `HoldingPeriodMonthlyReturns`
+
+Arithmetic and **geometric mean monthly return** (both **per-month decimals**, *not* annualized) over the last 36, 60, and 120 **calendar month-ends** of adjusted closes. `R_t = P_t / P_{t-1} − 1` on month-end **simple** returns.
+
+```python
+class HoldingPeriodMonthlyReturns(BaseModel):
+    years: int                          # 3, 5, or 10
+    n_observations: int
+    window_start: date
+    window_end: date
+    arithmetic_mean_monthly_return: float
+    geometric_mean_monthly_return: float
+```
+
+```ts
+export interface HoldingPeriodMonthlyReturns {
+  years: 3 | 5 | 10;
+  nObservations: number;
+  windowStart: string;
+  windowEnd: string;
+  arithmeticMeanMonthlyReturn: number;
+  geometricMeanMonthlyReturn: number;
+}
+```
+
+### `ORPPerformanceMetrics` / `CompletePerformanceMetrics`
+
+```python
+class ORPPerformanceMetrics(BaseModel):
+    treynor: float
+    jensen_alpha: float
+    n_observations: int
+    total_variance: float
+    systematic_variance: float
+    unsystematic_variance: float
+    sim_variance_mismatch: float
+
+class CompletePerformanceMetrics(BaseModel):
+    treynor: float
+    jensen_alpha: float
+    n_observations: int
+    total_variance: float
+    systematic_variance: float
+    unsystematic_variance: float
+    sim_variance_mismatch: float
+```
+
+```ts
+export interface ORPPerformanceMetrics {
+  treynor: number;
+  jensenAlpha: number;
+  nObservations: number;
+  totalVariance: number;
+  systematicVariance: number;
+  unsystematicVariance: number;
+  simVarianceMismatch: number;
+}
+
+export interface CompletePerformanceMetrics {
+  treynor: number;
+  jensenAlpha: number;
+  nObservations: number;
+  totalVariance: number;
+  systematicVariance: number;
+  unsystematicVariance: number;
+  simVarianceMismatch: number;
+}
+```
+
+### `FamaFrenchThreePerTicker`
+
+```python
+class FamaFrenchThreePerTicker(BaseModel):
+    ticker: Ticker
+    beta_mkt: float
+    beta_smb: float
+    beta_hml: float
+    alpha: float
+    n_observations: int
+    expected_return_ff3: float
+    expected_return_capm: float
+```
+
+```ts
+export interface FamaFrenchThreePerTicker {
+  ticker: Ticker;
+  betaMkt: number;
+  betaSmb: number;
+  betaHml: number;
+  alpha: number;
+  nObservations: number;
+  expectedReturnFf3: number;
+  expectedReturnCapm: number;
+}
+```
+
+### `AnalyticsPerformanceRequest` / `AnalyticsPerformanceResult`
+
+```python
+class AnalyticsPerformanceRequest(BaseModel):
+    tickers: list[Ticker] = Field(min_length=2, max_length=30)
+    orp_weights: dict[Ticker, float]
+    return_frequency: ReturnFrequency = ReturnFrequency.DAILY
+    lookback_years: int = Field(default=5, ge=1, le=20)
+    y_star: float | None = None
+    weight_risk_free: float | None = None
+
+class AnalyticsPerformanceResult(BaseModel):
+    as_of: datetime
+    window_start: date
+    window_end: date
+    risk_free_rate: float
+    data_source: str
+    orp: ORPPerformanceMetrics
+    complete: CompletePerformanceMetrics | None = None
+    holding: list[HoldingPeriodMonthlyReturns]
+    fama_french: list[FamaFrenchThreePerTicker]
+    market: MarketMetrics
+    warnings: list[str] = []
+```
+
+```ts
+export interface AnalyticsPerformanceRequest {
+  tickers: Ticker[];
+  orpWeights: Record<Ticker, number>;
+  returnFrequency?: ReturnFrequency;
+  lookbackYears?: number;
+  yStar?: number;
+  weightRiskFree?: number;
+}
+
+export interface AnalyticsPerformanceResult {
+  asOf: string;
+  windowStart: string;
+  windowEnd: string;
+  riskFreeRate: number;
+  dataSource: string;
+  orp: ORPPerformanceMetrics;
+  complete?: CompletePerformanceMetrics;
+  holding: HoldingPeriodMonthlyReturns[];
+  famaFrench: FamaFrenchThreePerTicker[];
+  market: MarketMetrics;
+  warnings: string[];
+}
+```
+
+### `ValuationRequest` / `ValuationResult`
+
+```python
+class DdmTwoStageParams(BaseModel):
+    g1: float
+    g2: float
+    n_periods: int = Field(ge=1, le=200)
+
+class ValuationRequest(BaseModel):
+    tickers: list[Ticker] = Field(min_length=1, max_length=20)
+    wacc: float | None = None
+    fcff_growth: float | None = None
+    fcff_terminal_growth: float | None = None
+    cost_of_equity_override: float | None = None
+    ddm_gordon_g: float | None = None
+    ddm_two_stage: DdmTwoStageParams | None = None
+
+class TickerValuationBlock(BaseModel):
+    ticker: Ticker
+    fcff: float | None
+    fcfe: float | None
+    fcff_value_per_share: float | None
+    fcfe_value_per_share: float | None
+    ddm_gordon: float | None
+    ddm_two_stage: float | None
+    cost_of_equity: float
+    warnings: list[str] = []
+
+class ValuationResult(BaseModel):
+    as_of: datetime
+    per_ticker: list[TickerValuationBlock]
+    data_source: str
+    warnings: list[str] = []
+```
+
+```ts
+export interface DdmTwoStageParams { g1: number; g2: number; nPeriods: number; }
+
+export interface ValuationRequest {
+  tickers: Ticker[];
+  wacc?: number;
+  fcffGrowth?: number;
+  fcffTerminalGrowth?: number;
+  costOfEquityOverride?: number;
+  ddmGordonG?: number;
+  ddmTwoStage?: DdmTwoStageParams;
+}
+
+export interface TickerValuationBlock {
+  ticker: Ticker;
+  fcff: number | null;
+  fcfe: number | null;
+  fcffValuePerShare: number | null;
+  fcfeValuePerShare: number | null;
+  ddmGordon: number | null;
+  ddmTwoStage: number | null;
+  costOfEquity: number;
+  warnings: string[];
+}
+
+export interface ValuationResult {
+  asOf: string;
+  perTicker: TickerValuationBlock[];
+  dataSource: string;
+  warnings: string[];
 }
 ```
 
@@ -581,6 +816,10 @@ export interface CompareRequest {
 }
 ```
 
+### `AnalyticsPerformanceRequest` / `ValuationRequest`
+
+See [§3 domain types](#driftreport) (`AnalyticsPerformanceRequest`, `ValuationRequest`, `DdmTwoStageParams`) — the wire shapes are identical; they are listed here for endpoint discoverability.
+
 ---
 
 ## 5. Endpoints
@@ -705,6 +944,14 @@ Browser-owned chat history, persisted to the backend SQLite store at `CACHE_DB_P
 ### 5.12 `POST /api/export/pdf` — body `{ result: OptimizationResult }` → `application/pdf` binary
 
 Returns the rendered report as a PDF stream. `Content-Disposition: attachment; filename="portfolio-<requestId>.pdf"`.
+
+### 5.13 `POST /api/analytics/performance` — body `AnalyticsPerformanceRequest` → `AnalyticsPerformanceResult`
+
+Treynor, portfolio Jensen (SIM) alpha, **SIM variance decomposition** for the **ORP** weights supplied, **3/5/10-year** arithmetic and geometric *mean monthly* simple returns, and per-ticker Fama–French 3 (bundled factors). Does not run the Markowitz optimizer.
+
+### 5.14 `POST /api/valuation` — body `ValuationRequest` → `ValuationResult`
+
+FCFF, FCFE, DDM (Gordon and optional two-stage) per ticker; pulls fundamentals via **Alpha Vantage** (`INCOME_STATEMENT`, `BALANCE_SHEET`, `CASH_FLOW`, and `OVERVIEW` as needed). `INVALID_VALUATION` is returned for invalid DDM or discount-rate assumptions (e.g. `g >= k`).
 
 ---
 

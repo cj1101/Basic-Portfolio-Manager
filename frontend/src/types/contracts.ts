@@ -24,6 +24,8 @@ export type ErrorCode =
   | "INVALID_RISK_PROFILE"
   | "INVALID_RETURN_WINDOW"
   | "LLM_UNAVAILABLE"
+  | "INVALID_VALUATION"
+  | "INVALID_SETTINGS"
   | "INTERNAL";
 
 export type ChatSource = "rule" | "llm";
@@ -72,6 +74,11 @@ export interface CovarianceMatrix {
   matrix: number[][];
 }
 
+export interface CorrelationMatrix {
+  tickers: Ticker[];
+  matrix: number[][];
+}
+
 export interface RiskProfile {
   riskAversion: number;
   targetReturn?: number;
@@ -112,6 +119,7 @@ export interface OptimizationResult {
   market: MarketMetrics;
   stocks: StockMetrics[];
   covariance: CovarianceMatrix;
+  correlation: CorrelationMatrix;
   orp: ORP;
   complete: CompletePortfolio;
   frontierPoints: FrontierPoint[];
@@ -204,6 +212,27 @@ export interface LLMDefaultResponse {
   baseUrl: string;
 }
 
+export type ApiKeyName =
+  | "OPENROUTER_API_KEY"
+  | "ALPHA_VANTAGE_API_KEY"
+  | "FRED_API_KEY";
+
+export interface UpdateApiKeyRequest {
+  keyName: ApiKeyName;
+  newValue: string;
+  confirmOverwrite?: boolean;
+  confirmCreate?: boolean;
+}
+
+export interface UpdateApiKeyResponse {
+  updated: boolean;
+  created: boolean;
+  restartRequired: boolean;
+  requiresConfirmation: boolean;
+  confirmationType?: "overwrite" | "create";
+  message: string;
+}
+
 export interface ChatCitation {
   label: string;
   value: string;
@@ -256,6 +285,104 @@ export interface BacktestRequest {
 
 export interface CompareRequest {
   portfolioIds: string[];
+}
+
+export interface HoldingPeriodMonthlyReturns {
+  years: 3 | 5 | 10;
+  nObservations: number;
+  windowStart: string;
+  windowEnd: string;
+  arithmeticMeanMonthlyReturn: number;
+  geometricMeanMonthlyReturn: number;
+}
+
+export interface ORPPerformanceMetrics {
+  treynor: number;
+  jensenAlpha: number;
+  nObservations: number;
+  totalVariance: number;
+  systematicVariance: number;
+  unsystematicVariance: number;
+  simVarianceMismatch: number;
+}
+
+export interface CompletePerformanceMetrics {
+  treynor: number;
+  jensenAlpha: number;
+  nObservations: number;
+  totalVariance: number;
+  systematicVariance: number;
+  unsystematicVariance: number;
+  simVarianceMismatch: number;
+}
+
+export interface FamaFrenchThreePerTicker {
+  ticker: Ticker;
+  betaMkt: number;
+  betaSmb: number;
+  betaHml: number;
+  alpha: number;
+  nObservations: number;
+  expectedReturnFf3: number;
+  expectedReturnCapm: number;
+}
+
+export interface AnalyticsPerformanceRequest {
+  tickers: Ticker[];
+  orpWeights: Record<Ticker, number>;
+  returnFrequency?: ReturnFrequency;
+  lookbackYears?: number;
+  yStar?: number;
+  weightRiskFree?: number;
+}
+
+export interface AnalyticsPerformanceResult {
+  asOf: string;
+  windowStart: string;
+  windowEnd: string;
+  riskFreeRate: number;
+  dataSource: string;
+  orp: ORPPerformanceMetrics;
+  complete?: CompletePerformanceMetrics;
+  holding: HoldingPeriodMonthlyReturns[];
+  famaFrench: FamaFrenchThreePerTicker[];
+  market: MarketMetrics;
+  warnings: string[];
+}
+
+export interface DdmTwoStageParams {
+  g1: number;
+  g2: number;
+  nPeriods: number;
+}
+
+export interface ValuationRequest {
+  tickers: Ticker[];
+  wacc?: number;
+  fcffGrowth?: number;
+  fcffTerminalGrowth?: number;
+  costOfEquityOverride?: number;
+  ddmGordonG?: number;
+  ddmTwoStage?: DdmTwoStageParams;
+}
+
+export interface TickerValuationBlock {
+  ticker: Ticker;
+  fcff: number | null;
+  fcfe: number | null;
+  fcffValuePerShare: number | null;
+  fcfeValuePerShare: number | null;
+  ddmGordon: number | null;
+  ddmTwoStage: number | null;
+  costOfEquity: number;
+  warnings: string[];
+}
+
+export interface ValuationResult {
+  asOf: string;
+  perTicker: TickerValuationBlock[];
+  dataSource: string;
+  warnings: string[];
 }
 
 // ---------------------------------------------------------------------------

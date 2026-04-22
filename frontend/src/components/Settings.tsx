@@ -1,10 +1,11 @@
 import { useId, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Settings as SettingsIcon, X, Loader2, AlertTriangle } from "lucide-react";
-import { useLlmDefault, useLlmModels } from "@/lib/queries";
+import { useLlmDefault, useLlmModels, useUpdateApiKey } from "@/lib/queries";
 import { DEFAULT_LLM_MODEL } from "@/state/settingsContext";
 import { useSettings } from "@/state/settingsHooks";
 import { ApiError } from "@/lib/api";
+import type { ApiKeyName } from "@/types/contracts";
 
 /**
  * Settings panel opened from the gear icon in the header.
@@ -22,7 +23,16 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState(settings.llmModel);
   const inputId = useId();
   const listId = useId();
+  const apiKeyId = useId();
+  const apiKeyValueId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const updateApiKey = useUpdateApiKey();
+  const [selectedApiKey, setSelectedApiKey] = useState<ApiKeyName>("OPENROUTER_API_KEY");
+  const [apiKeyValue, setApiKeyValue] = useState("");
+  const [apiKeyStatus, setApiKeyStatus] = useState<string | null>(null);
+  const [pendingConfirmation, setPendingConfirmation] = useState<"overwrite" | "create" | null>(
+    null,
+  );
 
   const models = useMemo(() => modelsQuery.data?.models ?? [], [modelsQuery.data?.models]);
   const filtered = useMemo(() => {
@@ -51,6 +61,28 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const backendDefault = defaultQuery.data?.defaultModel ?? DEFAULT_LLM_MODEL;
   const modelsError =
     modelsQuery.error instanceof ApiError ? modelsQuery.error : null;
+  const apiKeyError = updateApiKey.error instanceof ApiError ? updateApiKey.error : null;
+
+  async function submitApiKey(options?: {
+    confirmOverwrite?: boolean;
+    confirmCreate?: boolean;
+  }) {
+    const response = await updateApiKey.mutateAsync({
+      keyName: selectedApiKey,
+      newValue: apiKeyValue,
+      confirmOverwrite: options?.confirmOverwrite,
+      confirmCreate: options?.confirmCreate,
+    });
+    setApiKeyStatus(response.message);
+    if (response.requiresConfirmation && response.confirmationType) {
+      setPendingConfirmation(response.confirmationType);
+      return;
+    }
+    setPendingConfirmation(null);
+    if (response.updated) {
+      setApiKeyValue("");
+    }
+  }
 
   return (
     <div
@@ -168,6 +200,57 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           ) : null}
         </section>
 
+        <section className="mt-4 flex flex-col gap-2 border-t border-slate-200 pt-4">
+          <label htmlFor={apiKeyId} className="text-sm font-medium text-slate-700">
+            API key name
+          </label>
+          <select
+            id={apiKeyId}
+            value={selectedApiKey}
+            onChange={(e) => setSelectedApiKey(e.target.value as ApiKeyName)}
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+          >
+            <option value="OPENROUTER_API_KEY">OPENROUTER_API_KEY</option>
+            <option value="ALPHA_VANTAGE_API_KEY">ALPHA_VANTAGE_API_KEY</option>
+            <option value="FRED_API_KEY">FRED_API_KEY</option>
+          </select>
+
+          <label htmlFor={apiKeyValueId} className="text-sm font-medium text-slate-700">
+            New API key value
+          </label>
+          <input
+            id={apiKeyValueId}
+            type="password"
+            value={apiKeyValue}
+            onChange={(e) => setApiKeyValue(e.target.value)}
+            autoComplete="off"
+            placeholder="Enter new key value"
+            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200"
+          />
+
+          <button
+            type="button"
+            onClick={() => void submitApiKey()}
+            disabled={updateApiKey.isPending}
+            className="self-start rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {updateApiKey.isPending ? "Updating..." : "Update key"}
+          </button>
+
+          {apiKeyStatus ? (
+            <p className="text-[11px] text-slate-500">{apiKeyStatus}</p>
+          ) : null}
+          {apiKeyError ? (
+            <p className="text-xs text-red-600">
+              Could not update key ({apiKeyError.code}).
+            </p>
+          ) : null}
+          <p className="text-[11px] text-slate-500">
+            Updates are written to <code>backend/.env</code>. Restart backend after successful
+            save to apply changes.
+          </p>
+        </section>
+
         {modelsQuery.data && filtered.length > 0 ? (
           <section className="mt-4 flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -207,6 +290,41 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
           </section>
         ) : null}
       </div>
+      {pendingConfirmation ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/45 px-4">
+          <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-4 shadow-xl">
+            <p className="text-sm font-semibold text-slate-900">
+              {pendingConfirmation === "overwrite"
+                ? "Confirm overwrite of existing key?"
+                : "Confirm creation of missing key?"}
+            </p>
+            <p className="mt-1 text-xs text-slate-600">
+              {selectedApiKey} will be updated in <code>backend/.env</code>.
+            </p>
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setPendingConfirmation(null)}
+                className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:border-slate-400"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  void submitApiKey({
+                    confirmOverwrite: pendingConfirmation === "overwrite",
+                    confirmCreate: pendingConfirmation === "create",
+                  })
+                }
+                className="rounded border border-brand-500 bg-brand-500 px-3 py-1 text-xs font-medium text-white hover:bg-brand-600"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

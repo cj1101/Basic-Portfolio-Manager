@@ -33,13 +33,14 @@ from app.errors import (
     InvalidReturnWindowError,
     UnknownTickerError,
 )
+from app.services.returns_frame import build_return_frame
 from app.schemas import (
+    CorrelationMatrix,
     CovarianceMatrix,
     ErrorCode,
     MarketMetrics,
     OptimizationRequest,
     OptimizationResult,
-    PriceBar,
     ReturnFrequency,
     StockMetrics,
 )
@@ -55,6 +56,7 @@ from quant import (
 from quant import (
     annualization_factor,
     cal_points,
+    covariance_to_correlation,
     efficient_frontier_points,
     ensure_psd_covariance,
     optimize_markowitz,
@@ -133,7 +135,7 @@ class OptimizeService:
         # ------------------------------------------------------------------
         # Assemble the aligned per-period return matrix.
         # ------------------------------------------------------------------
-        frame = _build_return_frame(
+        frame = build_return_frame(
             {t: res.bars for t, res in hist_results.items()},
             column_order=(*tickers, MARKET_PROXY_TICKER),
         )
@@ -271,6 +273,12 @@ class OptimizeService:
                 [float(cov_psd[i, j]) for j in range(len(tickers))] for i in range(len(tickers))
             ],
         )
+        rho = covariance_to_correlation(cov_psd)
+        n_t = len(tickers)
+        correlation = CorrelationMatrix(
+            tickers=list(tickers),
+            matrix=[[float(rho[i, j]) for j in range(n_t)] for i in range(n_t)],
+        )
 
         as_of = _as_of_from_frame(frame)
 
@@ -281,6 +289,7 @@ class OptimizeService:
             market=market,
             stocks=stock_metrics,
             covariance=covariance,
+            correlation=correlation,
             orp=orp,
             complete=complete,
             frontier_points=frontier,
@@ -327,58 +336,6 @@ def _normalize_request_tickers(raw: list[str]) -> tuple[str, ...]:
             "at least 2 distinct tickers are required", {"tickers": seen}
         )
     return tuple(seen)
-
-
-def _build_return_frame(
-    bars_by_ticker: dict[str, list[PriceBar]],
-    *,
-    column_order: tuple[str, ...],
-) -> pd.DataFrame:
-    """Inner-join closes on their shared date index and convert to log returns.
-
-    Only dates where *every* ticker has a bar contribute. This keeps the
-    covariance matrix honest: we never blend a ticker's own history with a
-    different ticker's date range.
-    """
-    if not bars_by_ticker:
-        raise InvalidReturnWindowError("no bars available to build return frame")
-
-    close_frames: dict[str, pd.Series] = {}
-    for ticker, bars in bars_by_ticker.items():
-        if not bars:
-            raise UnknownTickerError(ticker)
-        closes = pd.Series(
-            {bar.date: float(bar.close) for bar in bars},
-            name=ticker,
-            dtype="float64",
-        )
-        closes.index = pd.to_datetime(closes.index)
-        closes = closes.sort_index()
-        close_frames[ticker] = closes
-
-    frame = pd.concat(close_frames, axis=1, join="inner")
-    # Reorder columns deterministically.
-    frame = frame[list(column_order)]
-    frame = frame.dropna()
-    if frame.shape[0] < 2:
-        raise InsufficientHistoryError(
-            ",".join(column_order),
-            int(frame.shape[0]),
-            MIN_ALIGNED_OBSERVATIONS,
-        )
-
-    returns = np.log(frame.to_numpy(dtype=np.float64))
-    diffs = np.diff(returns, axis=0)
-    if not np.all(np.isfinite(diffs)):
-        raise InvalidReturnWindowError(
-            "non-finite log returns computed from historical bars",
-            {"nonFiniteCount": int(np.sum(~np.isfinite(diffs)))},
-        )
-    return pd.DataFrame(
-        diffs,
-        index=frame.index[1:],
-        columns=list(column_order),
-    )
 
 
 def _as_of_from_frame(frame: pd.DataFrame) -> datetime:

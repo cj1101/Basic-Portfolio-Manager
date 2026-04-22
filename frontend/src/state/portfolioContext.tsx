@@ -18,6 +18,7 @@ import {
   computeCompleteFromORP,
   type CompletePortfolioDerivation,
 } from "@/lib/completePortfolio";
+import { ensureOptimizationResultHasCorrelation } from "@/lib/correlationFromCovariance";
 import { useDebouncedValue } from "@/lib/useDebouncedValue";
 import { useOptimization } from "@/lib/queries";
 import type { ApiError } from "@/lib/api";
@@ -183,12 +184,17 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
       // back to the fixture so the charts remain stable. The consumers that
       // care about loading state should read `status === "loading"` and
       // render a skeleton instead.
-      const fixture = optimizationResultSample;
+      const fixture = ensureOptimizationResultHasCorrelation(optimizationResultSample);
       const complete = computeCompleteFromORP(fixture.orp, fixture.riskFreeRate, riskProfile);
       return { ...fixture, complete };
     }
-    const complete = computeCompleteFromORP(source.orp, source.riskFreeRate, riskProfile);
-    return { ...source, complete };
+    const normalized = ensureOptimizationResultHasCorrelation(source);
+    const complete = computeCompleteFromORP(
+      normalized.orp,
+      normalized.riskFreeRate,
+      riskProfile,
+    );
+    return { ...normalized, complete };
   }, [serverResult, riskProfile, query.isLoading, query.data]);
 
   const status: RequestStatus = query.isError

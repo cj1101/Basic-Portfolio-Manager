@@ -43,6 +43,7 @@ async def test_optimize_happy_path(api_client):
         "market",
         "stocks",
         "covariance",
+        "correlation",
         "orp",
         "complete",
         "frontierPoints",
@@ -79,6 +80,24 @@ async def test_optimize_happy_path(api_client):
     for i in range(n):
         for j in range(n):
             assert cov[i][j] == pytest.approx(cov[j][i], abs=1e-9)
+
+    # Correlation matrix: labels match, unit diagonal, consistent with Σ.
+    corr = body["correlation"]
+    assert corr["tickers"] == tickers
+    cmat = corr["matrix"]
+    assert len(cmat) == n
+    for i in range(n):
+        for j in range(n):
+            assert cmat[i][j] == pytest.approx(cmat[j][i], abs=1e-9)
+        assert cmat[i][i] == pytest.approx(1.0, abs=1e-9)
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                continue
+            assert -1.0 - 1e-6 <= cmat[i][j] <= 1.0 + 1e-6
+            si = cov[i][i] ** 0.5
+            sj = cov[j][j] ** 0.5
+            assert cov[i][j] == pytest.approx(si * sj * cmat[i][j], rel=1e-5, abs=1e-9)
 
     # ORP weights sum to 1 (CONTRACTS §3) and include every input ticker
     # even at 0 (wire-format rule 4 in CONTRACTS §6).

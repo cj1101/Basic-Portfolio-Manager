@@ -73,6 +73,15 @@ CREATE TABLE IF NOT EXISTS daily_quota (
     count INTEGER NOT NULL DEFAULT 0,
     PRIMARY KEY (provider, quota_date)
 );
+
+CREATE TABLE IF NOT EXISTS fundamentals (
+    ticker TEXT NOT NULL,
+    kind TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    fetched_at REAL NOT NULL,
+    source TEXT NOT NULL,
+    PRIMARY KEY (ticker, kind)
+);
 """
 
 
@@ -258,6 +267,38 @@ class MarketCache:
             source=row["source"],
             fetched_at=row["fetched_at"],
         )
+
+    # ----- fundamentals (Alpha Vantage) ----------------------------------
+
+    FUNDAMENTALS_TTL_SECONDS: int = 7 * 24 * 3600
+
+    async def get_fundamentals(self, ticker: str, kind: str) -> dict[str, Any] | None:
+        conn = await self._ensure()
+        async with conn.execute(
+            "SELECT payload, fetched_at, source FROM fundamentals WHERE ticker = ? AND kind = ?",
+            (ticker, kind),
+        ) as cur:
+            row = await cur.fetchone()
+        if row is None:
+            return None
+        if _expired(row["fetched_at"], self.FUNDAMENTALS_TTL_SECONDS):
+            return None
+        return json.loads(row["payload"])
+
+    async def put_fundamentals(self, ticker: str, kind: str, payload: dict, source: str) -> None:
+        conn = await self._ensure()
+        await conn.execute(
+            """
+            INSERT INTO fundamentals (ticker, kind, payload, fetched_at, source)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(ticker, kind) DO UPDATE SET
+                payload = excluded.payload,
+                fetched_at = excluded.fetched_at,
+                source = excluded.source
+            """,
+            (ticker, kind, json.dumps(payload, sort_keys=True), time.time(), source),
+        )
+        await conn.commit()
 
     async def put_risk_free_rate(self, rate: float, as_of: datetime, source: str) -> None:
         conn = await self._ensure()

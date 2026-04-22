@@ -18,7 +18,8 @@ from app.data.service import HistoricalResult, RiskFreeRateResult
 from app.errors import InsufficientHistoryError, InvalidReturnWindowError
 from app.schemas import OptimizationRequest, PriceBar, ReturnFrequency, RiskProfile
 from app.services import MARKET_PROXY_TICKER, OptimizeService
-from app.services.optimize_service import _build_return_frame, _normalize_request_tickers
+from app.services.optimize_service import _normalize_request_tickers
+from app.services.returns_frame import build_return_frame
 
 
 # ---------------------------------------------------------------------------
@@ -170,7 +171,7 @@ def test_build_return_frame_inner_joins_shared_dates():
         PriceBar(date=base - timedelta(days=i), open=100, high=100, low=100, close=100 * (1 + 0.002 * i), volume=1)
         for i in range(5)
     ]
-    frame = _build_return_frame({"A": bars_a, "B": bars_b}, column_order=("A", "B"))
+    frame = build_return_frame({"A": bars_a, "B": bars_b}, column_order=("A", "B"))
     assert frame.shape[1] == 2
     # Log-diffs across 5 shared observations ⇒ 4 rows.
     assert frame.shape[0] == 4

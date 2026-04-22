@@ -80,6 +80,10 @@ function describe(error: ApiError): { title: string; body: string } {
       title: "Chat is temporarily unavailable",
       body: "The assistant is offline; the optimizer itself is unaffected.",
     },
+    INVALID_VALUATION: {
+      title: "Invalid valuation inputs",
+      body: error.message || "Discount rate must exceed growth in DDM / terminal models.",
+    },
     INTERNAL: {
       title: "Something went wrong on our side",
       body: error.message || "An unexpected error occurred.",

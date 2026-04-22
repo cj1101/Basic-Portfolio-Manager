@@ -22,6 +22,7 @@ import argparse
 import io
 import os
 import platform
+import socket
 import shutil
 import signal
 import subprocess
@@ -51,6 +52,90 @@ COLORS = {
 }
 
 _shutdown = threading.Event()
+
+
+def _pids_listening_on_port(port: int) -> set[int]:
+    pids: set[int] = set()
+    if IS_WINDOWS:
+        out = subprocess.run(
+            ["netstat", "-ano", "-p", "tcp"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        stdout = out.stdout or ""
+        needle = f":{port}"
+        for line in stdout.splitlines():
+            if "LISTENING" not in line or needle not in line:
+                continue
+            parts = line.split()
+            if not parts:
+                continue
+            try:
+                pids.add(int(parts[-1]))
+            except ValueError:
+                continue
+        return pids
+
+    # Best-effort fallback for non-Windows.
+    out = subprocess.run(
+        ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    for token in out.stdout.split():
+        try:
+            pids.add(int(token))
+        except ValueError:
+            continue
+    return pids
+
+
+def _kill_pid(pid: int, log_file: IO[str]) -> None:
+    if pid == os.getpid():
+        return
+    if IS_WINDOWS:
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], check=False)
+    else:
+        subprocess.run(["kill", "-TERM", str(pid)], check=False)
+    _log("launcher", f"killed stale listener pid={pid}", log_file)
+
+
+def _cleanup_stale_backend_listeners(port: int, log_file: IO[str]) -> None:
+    for pid in sorted(_pids_listening_on_port(port)):
+        _kill_pid(pid, log_file)
+
+
+def _wait_for_port(host: str, port: int, timeout_seconds: float) -> bool:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.5)
+        try:
+            if sock.connect_ex((host, port)) == 0:
+                return True
+        finally:
+            sock.close()
+        time.sleep(0.1)
+    return False
+
+
+def _resolve_backend_port(requested_port: int | None, log_file: IO[str]) -> int:
+    if requested_port is not None:
+        return requested_port
+    preferred = 8000
+    fallback = 8002
+    if _pids_listening_on_port(preferred):
+        _log(
+            "launcher",
+            f"port {preferred} already occupied; switching backend to {fallback}",
+            log_file,
+        )
+        return fallback
+    return preferred
 
 
 def _color(text: str, color: str) -> str:
@@ -95,26 +180,15 @@ def _stream_reader(proc: subprocess.Popen[bytes], tag: str, q: Queue[tuple[str, 
 def _locate_backend_command(port: int) -> list[str]:
     """Pick the best way to invoke uvicorn.
 
-    Order: ``uv run uvicorn`` → ``python -m uvicorn``. We leave the cwd to
-    the caller (spawn sets cwd=BACKEND_DIR).
+    Order: backend-local venv python -> current python. We deliberately avoid
+    ``uv run --active`` here: it can resolve ``app`` from a stale installed
+    package instead of the live ``backend/app`` source tree, which causes route
+    drift during local development.
     """
-
-    uv_path = shutil.which("uv")
-    if uv_path:
-        return [
-            uv_path,
-            "run",
-            "--active",
-            "uvicorn",
-            "app.main:app",
-            "--reload",
-            "--port",
-            str(port),
-            "--log-level",
-            "debug",
-        ]
+    backend_python = BACKEND_DIR / ".venv" / "Scripts" / "python.exe"
+    python_cmd = str(backend_python) if backend_python.exists() else sys.executable
     return [
-        sys.executable,
+        python_cmd,
         "-m",
         "uvicorn",
         "app.main:app",
@@ -212,16 +286,29 @@ def main() -> int:
     env.setdefault("PYTHONUNBUFFERED", "1")
     env["LOG_LEVEL"] = args.log_level
     env.setdefault("UVICORN_LOG_LEVEL", args.log_level.lower())
-    # Tell the frontend where to find the backend when running on a non-default port.
-    if args.port:
-        env.setdefault("VITE_API_BASE_URL", f"http://localhost:{args.port}/api")
+    # Prevent cross-origin browser calls during dev. Frontend should always use
+    # relative `/api` and route through Vite proxy.
+    env.pop("VITE_API_BASE_URL", None)
+    selected_port = _resolve_backend_port(args.port, log_file)
+    # Keep frontend requests same-origin (`/api`) and retarget Vite's proxy
+    # backend origin when using a non-default backend port.
+    if selected_port != 8000:
+        env.setdefault("VITE_BACKEND_ORIGIN", f"http://127.0.0.1:{selected_port}")
+    _log(
+        "launcher",
+        "frontend env: "
+        + f"VITE_BACKEND_ORIGIN={env.get('VITE_BACKEND_ORIGIN', '(default 8000)')} "
+        + f"VITE_API_BASE_URL={'set' if 'VITE_API_BASE_URL' in env else 'unset'}",
+        log_file,
+    )
 
     q: Queue[tuple[str, str]] = Queue()
     procs: list[tuple[str, subprocess.Popen[bytes]]] = []
 
     try:
         if not args.no_backend:
-            port = args.port or 8000
+            port = selected_port
+            _cleanup_stale_backend_listeners(port, log_file)
             cmd = _locate_backend_command(port)
             _log("launcher", "starting backend: " + " ".join(cmd), log_file)
             proc = _spawn(cmd, BACKEND_DIR, env)
@@ -229,6 +316,14 @@ def main() -> int:
             threading.Thread(
                 target=_stream_reader, args=(proc, "backend", q), daemon=True
             ).start()
+            if _wait_for_port("127.0.0.1", port, timeout_seconds=20):
+                _log("launcher", f"backend port {port} is accepting connections", log_file)
+            else:
+                _log(
+                    "launcher",
+                    f"backend port {port} not ready after timeout; frontend may see initial proxy errors",
+                    log_file,
+                )
 
         if not args.no_frontend:
             cmd = _locate_frontend_command()

@@ -15,7 +15,8 @@ export type MetricTooltipKey =
   | "alpha"
   | "firmSpecificVar"
   | "orpWeight"
-  | "nObservations";
+  | "nObservations"
+  | "assetSynergy";
 
 export interface MetricTooltipParams {
   value?: number;
@@ -151,6 +152,8 @@ export function metricTooltip(key: MetricTooltipKey, params: MetricTooltipParams
         return "N obs is the number of return observations used to estimate metrics for that stock.";
       }
       return `N obs shows sample size used for estimation. Current value ${Math.round(value)} gives context for statistical confidence in expected return, volatility, beta, and alpha.`;
+    case "assetSynergy":
+      return "Pairwise correlation ρ is the covariance of two assets normalized to [-1, 1]. The optimizer still uses the full covariance matrix; this view is for human-readable synergy and diversification. Values near +1 move together; near 0 are independent; near -1 move opposite.";
     default:
       return "Portfolio metric explanation.";
   }

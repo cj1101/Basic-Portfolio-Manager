@@ -1,7 +1,8 @@
-import { AlertCircle, PieChart, Sliders } from "lucide-react";
+import { AlertCircle, HelpCircle, PieChart, Sliders } from "lucide-react";
 import clsx from "clsx";
 import { usePortfolio } from "@/state/portfolioContext";
 import { CALChart } from "../charts/CALChart";
+import { CorrelationHeatmap } from "../charts/CorrelationHeatmap";
 import { WeightsBarChart } from "../charts/WeightsBarChart";
 import { KpiCard } from "../kpi/KpiCard";
 import { decimals, pct } from "@/lib/format";
@@ -10,7 +11,7 @@ import { metricTooltip } from "@/lib/metricTooltips";
 
 export function AssetAllocationTab() {
   const { result, riskProfile } = usePortfolio();
-  const { orp, complete, riskFreeRate } = result;
+  const { orp, complete, riskFreeRate, correlation } = result;
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,6 +110,32 @@ export function AssetAllocationTab() {
           </h4>
           <WeightsBarChart weights={complete.weights} riskFreeWeight={complete.weightRiskFree} />
         </article>
+      </section>
+
+      <section className="card p-5">
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <h4 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Synergies (correlation)
+          </h4>
+          <Tooltip label={metricTooltip("assetSynergy")}>
+            <span className="inline-flex cursor-help text-slate-400" aria-label="About correlation">
+              <HelpCircle size={16} />
+            </span>
+          </Tooltip>
+        </div>
+        <p className="mb-3 text-sm leading-relaxed text-slate-600">
+          In quantitative finance, how different stocks move together is captured by <strong>covariance</strong> and{" "}
+          <strong>correlation</strong>. The optimizer already uses the full covariance (or, equivalently, all pairwise
+          covariances) to measure <em>interactive risk</em> and to find the ORP. Raw covariance is hard to read, so
+          the table below shows the <strong>correlation matrix</strong> on a −1.0 to +1.0 scale: each off-diagonal entry
+          is Covariance(<em>i</em>, <em>j</em>) / (σ<sub>i</sub> σ<sub>j</sub>).
+        </p>
+        <p className="mb-4 text-sm leading-relaxed text-slate-600">
+          <strong>How to read it:</strong> this matrix is your synergy view. For a well-diversified book you generally
+          want many pairs with low or negative correlation (more green) so shocks do not line up. If most pairs are
+          highly positive (red), a broad market move that hurts one name is more likely to hurt them all.
+        </p>
+        <CorrelationHeatmap correlation={correlation} />
       </section>
 
       <section className="card overflow-hidden">

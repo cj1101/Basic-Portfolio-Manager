@@ -34,6 +34,8 @@ ERROR_STATUS: dict[ErrorCode, int] = {
     ErrorCode.INVALID_RISK_PROFILE: 400,
     ErrorCode.INVALID_RETURN_WINDOW: 400,
     ErrorCode.LLM_UNAVAILABLE: 503,
+    ErrorCode.INVALID_VALUATION: 400,
+    ErrorCode.INVALID_SETTINGS: 400,
     ErrorCode.INTERNAL: 500,
 }
 
@@ -119,6 +121,11 @@ class InvalidReturnWindowError(AppError):
         super().__init__(ErrorCode.INVALID_RETURN_WINDOW, message, details)
 
 
+class InvalidValuationError(AppError):
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
+        super().__init__(ErrorCode.INVALID_VALUATION, message, details)
+
+
 def _envelope(code: ErrorCode, message: str, details: dict | None) -> dict[str, Any]:
     body: dict[str, Any] = {"code": code.value, "message": message}
     if details is not None:
@@ -183,6 +190,7 @@ __all__ = [
     "DataProviderError",
     "InsufficientHistoryError",
     "InvalidReturnWindowError",
+    "InvalidValuationError",
     "ProviderUnavailableError",
     "RateLimitError",
     "UnknownTickerError",

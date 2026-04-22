@@ -21,6 +21,8 @@ import type {
   ChatSessionResponse,
   LLMDefaultResponse,
   LLMModelsResponse,
+  UpdateApiKeyRequest,
+  UpdateApiKeyResponse,
   OptimizationRequest,
   OptimizationResult,
 } from "@/types/contracts";
@@ -31,6 +33,7 @@ import {
   getLlmDefault,
   getLlmModels,
   getRiskFreeRate,
+  patchApiKey,
   postChatSessionMessage,
   postOptimize,
   type RiskFreeRateResponse,
@@ -199,6 +202,17 @@ export function useLlmDefault(): UseQueryResult<LLMDefaultResponse, ApiError> {
     queryFn: ({ signal }) => getLlmDefault({ signal }),
     staleTime: 5 * 60_000,
     retry: 1,
+  });
+}
+
+export function useUpdateApiKey(): UseMutationResult<
+  UpdateApiKeyResponse,
+  ApiError,
+  UpdateApiKeyRequest
+> {
+  return useMutation<UpdateApiKeyResponse, ApiError, UpdateApiKeyRequest>({
+    mutationFn: (body) => patchApiKey(body),
+    retry: false,
   });
 }
 

@@ -59,6 +59,32 @@ export function buildCovariance(
   return cov;
 }
 
+/** Maps covariance Σ to correlation ρ with ρᵢⱼ = Σᵢⱼ / (σᵢ σⱼ), unit diagonal. */
+export function covarianceToCorrelation(cov: readonly (readonly number[])[]): Matrix {
+  const d = safeDim(cov);
+  if (!d || d.rows !== d.cols) {
+    throw new Error("covariance_to_correlation requires a square 2D matrix");
+  }
+  const n = d.rows;
+  const stdDevs: number[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const v = (cov[i] as Row)[i] as number;
+    if (!Number.isFinite(v) || v <= 0) {
+      throw new Error("covariance diagonal variances must be positive finite for correlation");
+    }
+    stdDevs.push(Math.sqrt(v));
+  }
+  const rho: Matrix = Array.from({ length: n }, () => new Array<number>(n).fill(0));
+  for (let i = 0; i < n; i += 1) {
+    for (let j = 0; j < n; j += 1) {
+      const c = (cov[i] as Row)[j] as number;
+      const val = c / (stdDevs[i]! * stdDevs[j]!);
+      (rho[i] as Row)[j] = i === j ? 1.0 : val;
+    }
+  }
+  return symmetrize(rho);
+}
+
 export function isSymmetric(m: Matrix, tol: number = SYMMETRY_TOL): boolean {
   const d = safeDim(m);
   if (!d || d.rows !== d.cols) return false;

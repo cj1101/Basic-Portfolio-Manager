@@ -41,6 +41,8 @@ These were captured in the Phase 0 Q&A and are frozen for the rest of the build.
 | 7 | Return-estimation convention | **Configurable** via request: default is **daily log-returns**, **5-year lookback**, annualized by ×252 for `E(r)` and ×√252 for `σ`. Monthly + custom windows supported. |
 | 8 | Alpha source | **Historical regression residual**: `αᵢ = mean(excess_i) − βᵢ · mean(excess_market)` computed over the same return window. Documented in UI copy as *backward-looking*. |
 | 9 | v1 scope | **Full** — optimizer + 5 tabs + chat + backtest + saved portfolios + rebalancing drift + multi-portfolio compare + PDF export. |
+| 10 | Course / portfolio report metrics | **Fama–French 3** is available as an *alternative* to CAPM for per-ticker return attribution and expected returns; factor data is **bundled** (Kenneth French library) and not fetched from market vendors. `POST /optimize` returns only the Markowitz + CAPM/SIM path; `POST /api/analytics/performance` and `POST /api/valuation` are **separate** calls (keeps the optimizer response lean). |
+| 11 | Fundamentals (Alpha Vantage) | `INCOME_STATEMENT`, `BALANCE_SHEET`, and `CASH_FLOW` (plus `OVERVIEW` when needed) for FCFF, FCFE, and DDM; cached in SQLite with long TTL. |
 
 ---
 
@@ -58,6 +60,8 @@ These were captured in the Phase 0 Q&A and are frozen for the rest of the build.
 | Side-by-side portfolio compare | `POST /compare` | 3C Multi-portfolio |
 | Chat over current portfolio | `POST /chat` | 3A Chatbot |
 | Export result to PDF | `POST /export/pdf` | 4 Polish |
+| Treynor, Jensen, SIM risk, holding-period & FF3 analytics | `POST /analytics/performance` | Integration (1A + 1C) |
+| FCFF, FCFE, DDM, intrinsic value | `POST /valuation` | Integration (1A + 1C) |
 
 All shapes are nailed down in [CONTRACTS.md](CONTRACTS.md).
 
@@ -69,7 +73,7 @@ These are explicitly **NOT** being built. If a downstream agent starts sliding t
 
 - Real trading / broker API integration (Alpaca, IBKR, etc.). This is read-only analytics.
 - Options, futures, crypto, fixed-income, FX. Equities only.
-- Factor models beyond the Single-Index Model (no Fama-French, no Black-Litterman).
+- Black–Litterman and factor models *beyond* Fama–French 3+CAPM duality in the analytics endpoints (e.g. no Carhart 4, no Fama–French 5) unless SPEC is amended.
 - Tax-lot optimization / tax-loss harvesting.
 - Multi-currency / FX-adjusted returns. USD only.
 - User authentication / multi-tenant. Local single-user by default; auth is a Phase 5+ concern.
@@ -163,6 +167,10 @@ All symbols use these names and units throughout code, docs, and UI. Deviations 
 | `y` | `y_star` / `yStar` | Fraction of wealth in the ORP (risky) | Decimal, can exceed 1 (leverage) or go negative (not supported in v1) |
 | `w_i` | `weights[ticker]` | Weight of asset `i` in the ORP | Decimal, sum to 1 within the risky portion; individual weight can be negative (short) |
 | `SR` | `sharpe` | Sharpe ratio of a portfolio `(E(r_p) - r_f) / σ_p` | Decimal |
+| `T` | `treynor` | Treynor ratio `(E(r_p) - r_f) / β_p` (typically on the ORP) | Decimal |
+| `α_J` (portfolio) | `jensen_alpha` / `jensenAlpha` | Intercept from time-series excess regression of the *portfolio* on the market (annualized) | Decimal |
+| `β_SMB`, `β_HML` | `beta_smb`, `beta_hml` | Fama–French size and value loadings | Decimals |
+| `E(r)_{FF3}` | `expected_return_ff3` | Expected return from 3-factor model using sample means of `RF` and factor premia (annualized) | Decimal |
 
 ---
 

@@ -5,7 +5,7 @@ code always reads the snake_case attribute; the wire format is the camelCase
 alias. Non-finite floats are rejected at serialization time per CONTRACTS §6.
 
 Domain types that are also produced by the Quant Engine (``StockMetrics``,
-``MarketMetrics``, ``CovarianceMatrix``, ``RiskProfile``, ``FrontierPoint``,
+``MarketMetrics``, ``CovarianceMatrix``, ``CorrelationMatrix``, ``RiskProfile``, ``FrontierPoint``,
 ``CALPoint``, ``ORP``, ``CompletePortfolio``, ``OptimizationResult``,
 ``ReturnFrequency``) are **re-exported from** ``quant.types`` so there is a
 single source of truth for those shapes. HTTP-layer-only types (``Quote``,
@@ -28,6 +28,7 @@ from quant.types import (
     ORP,
     CALPoint,
     CompletePortfolio,
+    CorrelationMatrix,
     CovarianceMatrix,
     FrontierPoint,
     MarketMetrics,
@@ -48,6 +49,8 @@ class ErrorCode(str, Enum):
     INVALID_RISK_PROFILE = "INVALID_RISK_PROFILE"
     INVALID_RETURN_WINDOW = "INVALID_RETURN_WINDOW"
     LLM_UNAVAILABLE = "LLM_UNAVAILABLE"
+    INVALID_VALUATION = "INVALID_VALUATION"
+    INVALID_SETTINGS = "INVALID_SETTINGS"
     INTERNAL = "INTERNAL"
 
 
@@ -172,8 +175,135 @@ class ErrorEnvelope(_CamelModel):
     details: dict | None = None
 
 
+# --- analytics / valuation (CONTRACTS §3 / §5.13–5.14) ---
+
+
+class HoldingPeriodMonthlyReturns(_CamelModel):
+    years: int
+    n_observations: int
+    window_start: Date
+    window_end: Date
+    arithmetic_mean_monthly_return: float
+    geometric_mean_monthly_return: float
+
+
+class ORPPerformanceMetrics(_CamelModel):
+    treynor: float
+    jensen_alpha: float
+    n_observations: int
+    total_variance: float
+    systematic_variance: float
+    unsystematic_variance: float
+    sim_variance_mismatch: float
+
+
+class CompletePerformanceMetrics(_CamelModel):
+    treynor: float
+    jensen_alpha: float
+    n_observations: int
+    total_variance: float
+    systematic_variance: float
+    unsystematic_variance: float
+    sim_variance_mismatch: float
+
+
+class FamaFrenchThreePerTicker(_CamelModel):
+    ticker: Ticker
+    beta_mkt: float
+    beta_smb: float
+    beta_hml: float
+    alpha: float
+    n_observations: int
+    expected_return_ff3: float
+    expected_return_capm: float
+
+
+class AnalyticsPerformanceRequest(_CamelModel):
+    tickers: list[Ticker] = Field(min_length=2, max_length=30)
+    orp_weights: dict[Ticker, float]
+    return_frequency: ReturnFrequency = ReturnFrequency.DAILY
+    lookback_years: int = Field(default=5, ge=1, le=20)
+    y_star: float | None = None
+    weight_risk_free: float | None = None
+
+
+class AnalyticsPerformanceResult(_CamelModel):
+    as_of: datetime
+    window_start: Date
+    window_end: Date
+    risk_free_rate: float
+    data_source: str
+    orp: ORPPerformanceMetrics
+    complete: CompletePerformanceMetrics | None = None
+    holding: list[HoldingPeriodMonthlyReturns]
+    fama_french: list[FamaFrenchThreePerTicker]
+    market: MarketMetrics
+    warnings: list[str] = Field(default_factory=list)
+
+
+class DdmTwoStageParams(_CamelModel):
+    g1: float
+    g2: float
+    n_periods: int = Field(ge=1, le=200)
+
+
+class ValuationRequest(_CamelModel):
+    tickers: list[Ticker] = Field(min_length=1, max_length=20)
+    wacc: float | None = None
+    fcff_growth: float | None = None
+    fcff_terminal_growth: float | None = None
+    cost_of_equity_override: float | None = None
+    ddm_gordon_g: float | None = None
+    ddm_two_stage: DdmTwoStageParams | None = None
+
+
+class TickerValuationBlock(_CamelModel):
+    ticker: Ticker
+    fcff: float | None
+    fcfe: float | None
+    fcff_value_per_share: float | None
+    fcfe_value_per_share: float | None
+    ddm_gordon: float | None
+    ddm_two_stage: float | None
+    cost_of_equity: float
+    warnings: list[str] = Field(default_factory=list)
+
+
+class ValuationResult(_CamelModel):
+    as_of: datetime
+    per_ticker: list[TickerValuationBlock]
+    data_source: str
+    warnings: list[str] = Field(default_factory=list)
+
+
+ApiKeyName = Literal["OPENROUTER_API_KEY", "ALPHA_VANTAGE_API_KEY", "FRED_API_KEY"]
+
+
+class UpdateApiKeyRequest(_CamelModel):
+    key_name: ApiKeyName
+    new_value: str
+    confirm_overwrite: bool = False
+    confirm_create: bool = False
+
+
+class UpdateApiKeyResponse(_CamelModel):
+    updated: bool
+    created: bool
+    restart_required: bool
+    requires_confirmation: bool
+    confirmation_type: Literal["overwrite", "create"] | None = None
+    message: str
+
+
 __all__ = [
+    "AnalyticsPerformanceRequest",
+    "AnalyticsPerformanceResult",
+    "CompletePerformanceMetrics",
+    "DdmTwoStageParams",
+    "FamaFrenchThreePerTicker",
+    "HoldingPeriodMonthlyReturns",
     "ORP",
+    "ORPPerformanceMetrics",
     "CALPoint",
     "ChatCitation",
     "ChatHistoryEntry",
@@ -184,12 +314,14 @@ __all__ = [
     "ChatSessionResponse",
     "ChatSource",
     "CompletePortfolio",
+    "CorrelationMatrix",
     "CovarianceMatrix",
     "ErrorCode",
     "ErrorDetails",
     "ErrorEnvelope",
     "FrontierPoint",
     "HistoricalResponse",
+    "ApiKeyName",
     "MarketMetrics",
     "OptimizationRequest",
     "OptimizationResult",
@@ -200,4 +332,9 @@ __all__ = [
     "RiskProfile",
     "StockMetrics",
     "Ticker",
+    "TickerValuationBlock",
+    "UpdateApiKeyRequest",
+    "UpdateApiKeyResponse",
+    "ValuationRequest",
+    "ValuationResult",
 ]

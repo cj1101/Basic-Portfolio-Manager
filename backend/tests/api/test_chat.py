@@ -44,6 +44,10 @@ def _sample_context_dict() -> dict:
             "tickers": ["AAPL", "NVDA"],
             "matrix": [[0.0729, 0.061], [0.061, 0.1681]],
         },
+        "correlation": {
+            "tickers": ["AAPL", "NVDA"],
+            "matrix": [[1.0, 0.5510388437217705], [0.5510388437217705, 1.0]],
+        },
         "orp": {
             "weights": {"AAPL": 0.4, "NVDA": 0.6},
             "expectedReturn": 0.33,

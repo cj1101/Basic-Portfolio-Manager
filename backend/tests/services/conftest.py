@@ -10,18 +10,21 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import numpy as np
 import pytest
 
 from app.schemas import (
     ORP,
     CALPoint,
     CompletePortfolio,
+    CorrelationMatrix,
     CovarianceMatrix,
     FrontierPoint,
     MarketMetrics,
     OptimizationResult,
     StockMetrics,
 )
+from quant.linalg import covariance_to_correlation
 
 
 @pytest.fixture
@@ -72,6 +75,19 @@ def sample_optimization_result() -> OptimizationResult:
                 [0.054, 0.0576, 0.0432],
                 [0.061, 0.0432, 0.1681],
             ],
+        ),
+        correlation=CorrelationMatrix(
+            tickers=list(tickers),
+            matrix=covariance_to_correlation(
+                np.array(
+                    [
+                        [0.0729, 0.054, 0.061],
+                        [0.054, 0.0576, 0.0432],
+                        [0.061, 0.0432, 0.1681],
+                    ],
+                    dtype=np.float64,
+                )
+            ).tolist(),
         ),
         orp=ORP(
             weights={"AAPL": 0.28, "MSFT": 0.22, "NVDA": 0.50},

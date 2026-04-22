@@ -10,6 +10,7 @@ export {
   PSD_TOL,
   PROJECTION_FLOOR,
   buildCovariance,
+  covarianceToCorrelation,
   ensurePsdCovariance,
   isPsd,
   isSymmetric,

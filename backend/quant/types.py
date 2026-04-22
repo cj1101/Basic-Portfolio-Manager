@@ -7,8 +7,9 @@ code build models from snake_case kwargs while JSON round-trips through the
 camelCase aliases.
 
 This module is deliberately narrow: only the types the Quant Engine produces
-live here (stocks, market, ORP, complete portfolio, frontier, CAL, optimization
-result). Data-layer types (``PriceBar``, ``Quote``) belong to Agent 1A Data.
+live here (stocks, market, ORP, complete portfolio, frontier, CAL, covariance and
+correlation matrices, optimization result). Data-layer types (``PriceBar``,
+``Quote``) belong to Agent 1A Data.
 """
 
 from __future__ import annotations
@@ -79,6 +80,27 @@ class CovarianceMatrix(_WireModel):
         return v
 
 
+class CorrelationMatrix(_WireModel):
+    tickers: list[Ticker]
+    matrix: list[list[float]]
+
+    @field_validator("matrix")
+    @classmethod
+    def _square_and_matching_correlation(
+        cls, v: list[list[float]], info: Any
+    ) -> list[list[float]]:
+        tickers = info.data.get("tickers")
+        if tickers is None:
+            return v
+        n = len(tickers)
+        if len(v) != n:
+            raise ValueError(f"matrix must have {n} rows, got {len(v)}")
+        for row in v:
+            if len(row) != n:
+                raise ValueError(f"each row must have {n} columns, got {len(row)}")
+        return v
+
+
 class RiskProfile(_WireModel):
     risk_aversion: int = Field(ge=1, le=10)
     target_return: float | None = None
@@ -119,6 +141,7 @@ class OptimizationResult(_WireModel):
     market: MarketMetrics
     stocks: list[StockMetrics]
     covariance: CovarianceMatrix
+    correlation: CorrelationMatrix
     orp: ORP
     complete: CompletePortfolio
     frontier_points: list[FrontierPoint]
@@ -130,6 +153,7 @@ __all__ = [
     "ORP",
     "CALPoint",
     "CompletePortfolio",
+    "CorrelationMatrix",
     "CovarianceMatrix",
     "FrontierPoint",
     "MarketMetrics",
