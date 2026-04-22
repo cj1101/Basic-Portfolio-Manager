@@ -1,0 +1,4 @@
+[2026-04-22T13:58:22] [launcher] logging to C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.logs\dev-20260422-135822.log
+[2026-04-22T13:58:22] [launcher] starting backend: uv run uvicorn app.main:app --reload --port 8000 --log-level debug
+[2026-04-22T13:58:22] [launcher] starting frontend: pnpm --filter portfolio-manager-frontend run dev
+[2026-04-22T13:58:22] [launcher] terminating backend…

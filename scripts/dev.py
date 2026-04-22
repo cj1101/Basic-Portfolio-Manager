@@ -92,9 +92,10 @@ def _locate_backend_command(port: int) -> list[str]:
     the caller (spawn sets cwd=BACKEND_DIR).
     """
 
-    if shutil.which("uv"):
+    uv_path = shutil.which("uv")
+    if uv_path:
         return [
-            "uv",
+            uv_path,
             "run",
             "uvicorn",
             "app.main:app",
@@ -120,11 +121,13 @@ def _locate_backend_command(port: int) -> list[str]:
 def _locate_frontend_command() -> list[str]:
     """Pick the best package manager for Vite dev."""
 
-    if shutil.which("pnpm"):
+    pnpm_path = shutil.which("pnpm")
+    if pnpm_path:
         # `--` separates pnpm args from the nested vite flags
-        return ["pnpm", "--filter", "portfolio-manager-frontend", "run", "dev"]
-    if shutil.which("npm"):
-        return ["npm", "--prefix", "frontend", "run", "dev"]
+        return [pnpm_path, "--filter", "portfolio-manager-frontend", "run", "dev"]
+    npm_path = shutil.which("npm")
+    if npm_path:
+        return [npm_path, "--prefix", "frontend", "run", "dev"]
     raise RuntimeError(
         "Neither pnpm nor npm is on PATH. Install one of them to launch the frontend."
     )
