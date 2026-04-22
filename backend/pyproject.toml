@@ -23,6 +23,8 @@ dependencies = [
   "yfinance>=0.2.40",
   "python-dateutil>=2.9.0",
   "orjson>=3.10.0",
+  # Chat (Agent E)
+  "openai>=1.40,<2",
   # Quant engine
   "numpy>=2.0,<3",
   "scipy>=1.13,<2",

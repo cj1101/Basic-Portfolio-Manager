@@ -79,20 +79,21 @@ jobs:
         run: |
           uv pip install --python .venv/bin/python -e ".[dev]"
 
-      # Scope ruff to the Agent D additions (services + optimize endpoint).
-      # Legacy app modules have pre-existing lint debt that is out of scope
-      # for this workflow until a dedicated cleanup pass lands.
-      - name: Ruff (lint, Agent D scope)
-        run: .venv/bin/ruff check app/services app/api/optimize.py
+      # Scope ruff/mypy to the modules that are actively maintained by recent
+      # agents (Agent D: services + optimize route; Agent E: chat service,
+      # chat route, chat store). Legacy app modules have pre-existing lint
+      # debt that is out of scope until a dedicated cleanup pass lands.
+      - name: Ruff (lint, Agent D+E scope)
+        run: .venv/bin/ruff check app/services app/api/optimize.py app/api/chat.py app/data/chat_store.py
 
-      - name: Ruff (format check, Agent D scope)
-        run: .venv/bin/ruff format --check app/services app/api/optimize.py
+      - name: Ruff (format check, Agent D+E scope)
+        run: .venv/bin/ruff format --check app/services app/api/optimize.py app/api/chat.py app/data/chat_store.py
 
-      - name: mypy (Agent D scope)
-        run: .venv/bin/mypy app/services app/api/optimize.py
+      - name: mypy (Agent D+E scope)
+        run: .venv/bin/mypy app/services app/api/optimize.py app/api/chat.py app/data/chat_store.py
 
-      - name: pytest — app + data + api suites
-        run: .venv/bin/pytest tests/api tests/data
+      - name: pytest — app + data + api + services suites
+        run: .venv/bin/pytest tests/api tests/data tests/services
 
   quant-ts:
     name: packages/quant-ts — vitest + tsc + eslint

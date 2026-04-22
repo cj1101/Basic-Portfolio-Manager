@@ -56,6 +56,12 @@ class ChatSource(str, Enum):
     LLM = "llm"
 
 
+class ChatMode(str, Enum):
+    AUTO = "auto"
+    RULE = "rule"
+    LLM = "llm"
+
+
 Ticker = Annotated[str, StringConstraints(pattern=r"^[A-Z0-9.]{1,10}$")]
 
 
@@ -106,6 +112,45 @@ class OptimizationRequest(_CamelModel):
     frontier_resolution: int = Field(default=40, ge=5, le=200)
 
 
+class ChatMessage(_CamelModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatCitation(_CamelModel):
+    label: str
+    value: str
+
+
+class ChatRequest(_CamelModel):
+    messages: list[ChatMessage] = Field(min_length=1, max_length=50)
+    portfolio_context: OptimizationResult | None = None
+    mode: ChatMode = ChatMode.AUTO
+    session_id: str | None = None
+
+
+class ChatResponse(_CamelModel):
+    answer: str
+    source: ChatSource
+    citations: list[ChatCitation] = Field(default_factory=list)
+
+
+class ChatHistoryEntry(_CamelModel):
+    role: Literal["user", "assistant"]
+    content: str
+    source: ChatSource | None = None
+    citations: list[ChatCitation] = Field(default_factory=list)
+    created_at: datetime
+
+
+class ChatSessionResponse(_CamelModel):
+    session_id: str
+    portfolio_id: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    messages: list[ChatHistoryEntry] = Field(default_factory=list)
+
+
 class ErrorDetails(_CamelModel):
     model_config = ConfigDict(
         alias_generator=to_camel,
@@ -124,6 +169,13 @@ class ErrorEnvelope(_CamelModel):
 __all__ = [
     "ORP",
     "CALPoint",
+    "ChatCitation",
+    "ChatHistoryEntry",
+    "ChatMessage",
+    "ChatMode",
+    "ChatRequest",
+    "ChatResponse",
+    "ChatSessionResponse",
     "ChatSource",
     "CompletePortfolio",
     "CovarianceMatrix",

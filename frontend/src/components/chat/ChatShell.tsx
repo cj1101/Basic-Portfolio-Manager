@@ -1,45 +1,186 @@
-import { useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
-import { ChevronDown, ChevronUp, Lock, SendHorizontal, Sparkles } from "lucide-react";
-import type { ChatMessage } from "@/types/contracts";
+import { AlertTriangle, ChevronDown, ChevronUp, SendHorizontal, Sparkles, Trash2 } from "lucide-react";
+import type {
+  ChatCitation,
+  ChatHistoryEntry,
+  ChatMode,
+  ChatRequest,
+  CompletePortfolio,
+  OptimizationResult,
+} from "@/types/contracts";
+import { ApiError } from "@/lib/api";
+import {
+  useChatSession,
+  useDeleteChatSession,
+  useSendChatMessage,
+} from "@/lib/queries";
+import { usePortfolio } from "@/state/portfolioContext";
 import { Tooltip } from "../ui/Tooltip";
 
-const SEEDED_CONVERSATION: ChatMessage[] = [
-  {
-    role: "user",
-    content: "Why is NVDA overweighted in my portfolio?",
-  },
-  {
-    role: "assistant",
-    content:
-      "NVDA's large ORP weight comes from a positive alpha of +57% and a high Sharpe contribution. The ORP optimizer concentrates weight in assets whose excess-return-to-residual-risk ratio is highest — NVDA's alpha dominates despite its higher firm-specific variance.",
-  },
-  {
-    role: "user",
-    content: "What happens if I raise my target return to 30%?",
-  },
-  {
-    role: "assistant",
-    content:
-      "Your target (30%) exceeds the ORP's expected return of 29.4%, which forces leverage. The complete-portfolio weight in the ORP becomes y = (0.30 − r_f) / (E(r_ORP) − r_f) ≈ 1.03, meaning you borrow 3% at the risk-free rate.",
-  },
+const SESSION_STORAGE_KEY = "pm.chat.sessionId";
+
+const SAMPLE_PROMPTS: string[] = [
+  "Why is NVDA overweight?",
+  "What's my Sharpe?",
+  "What happens if I raise my target return to 30%?",
+  "Explain the efficient frontier.",
 ];
 
-const SAMPLE_PROMPTS = [
-  "Compare my ORP to a 60/40 benchmark.",
-  "What's the biggest drawdown I should expect?",
-  "How sensitive is the allocation to my A score?",
+type ModeOption = { value: ChatMode; label: string; hint: string };
+
+const MODE_OPTIONS: readonly ModeOption[] = [
+  { value: "auto", label: "Auto", hint: "Rule engine first, LLM fallback on miss" },
+  { value: "rule", label: "Rule", hint: "Deterministic rule-based answers only" },
+  { value: "llm", label: "LLM", hint: "Always go to the OpenAI LLM (requires OPENAI_API_KEY)" },
 ];
+
+function readStoredSessionId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    const existing = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    if (existing) return existing;
+    const fresh =
+      typeof window.crypto?.randomUUID === "function"
+        ? window.crypto.randomUUID()
+        : `sess-${Math.random().toString(36).slice(2)}${Date.now()}`;
+    window.localStorage.setItem(SESSION_STORAGE_KEY, fresh);
+    return fresh;
+  } catch {
+    return "";
+  }
+}
+
+function resetStoredSessionId(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    window.localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch {
+    // localStorage unavailable — ignore.
+  }
+  return readStoredSessionId();
+}
+
+interface UiMessage {
+  role: "user" | "assistant";
+  content: string;
+  source?: "rule" | "llm";
+  citations: ChatCitation[];
+  pending?: boolean;
+}
+
+function toUi(entry: ChatHistoryEntry): UiMessage {
+  const base: UiMessage = {
+    role: entry.role,
+    content: entry.content,
+    citations: entry.citations,
+  };
+  return entry.source ? { ...base, source: entry.source } : base;
+}
 
 export function ChatShell() {
   const [open, setOpen] = useState(false);
+  const [sessionId, setSessionId] = useState<string>("");
+  const [draft, setDraft] = useState("");
+  const [mode, setMode] = useState<ChatMode>("auto");
+  const [llmUnavailable, setLlmUnavailable] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [pendingUser, setPendingUser] = useState<UiMessage | null>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const formId = useId();
+
+  useEffect(() => {
+    setSessionId(readStoredSessionId());
+  }, []);
+
+  const portfolio = usePortfolio();
+  const serverContext = portfolio.result;
+  const hasPortfolio = !!serverContext;
+
+  const sessionQuery = useChatSession(sessionId || null);
+  const sendMutation = useSendChatMessage(sessionId || null);
+  const deleteMutation = useDeleteChatSession(sessionId || null);
+
+  const persisted: UiMessage[] = useMemo(() => {
+    const entries = sessionQuery.data?.messages ?? [];
+    return entries.map(toUi);
+  }, [sessionQuery.data]);
+
+  const messages: UiMessage[] = useMemo(() => {
+    if (!pendingUser) return persisted;
+    return [...persisted, pendingUser];
+  }, [persisted, pendingUser]);
+
+  // Auto-scroll to the bottom whenever the message list grows.
+  useEffect(() => {
+    if (!listRef.current) return;
+    listRef.current.scrollTop = listRef.current.scrollHeight;
+  }, [messages.length, open]);
+
+  async function handleSubmit(prompt: string) {
+    const text = prompt.trim();
+    if (!text || !sessionId) return;
+    setLocalError(null);
+
+    // Build the outgoing transcript: full persisted history + the new user turn.
+    const outgoingMessages = [
+      ...persisted.map((m) => ({ role: m.role, content: m.content })),
+      { role: "user" as const, content: text },
+    ];
+    const pending: UiMessage = {
+      role: "user",
+      content: text,
+      citations: [],
+      pending: true,
+    };
+    setPendingUser(pending);
+    setDraft("");
+
+    const body: ChatRequest = {
+      messages: outgoingMessages,
+      mode,
+      sessionId,
+      ...(serverContext
+        ? { portfolioContext: stripDerivedComplete(serverContext) }
+        : {}),
+    };
+    try {
+      await sendMutation.mutateAsync(body);
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "LLM_UNAVAILABLE") {
+        setLlmUnavailable(true);
+        if (mode === "llm") setMode("auto");
+        setLocalError(err.message);
+      } else if (err instanceof ApiError) {
+        setLocalError(err.message);
+      } else {
+        setLocalError("Unexpected error sending message.");
+      }
+    } finally {
+      setPendingUser(null);
+    }
+  }
+
+  function handleClear() {
+    deleteMutation.mutate(undefined, {
+      onSuccess: () => {
+        setSessionId(resetStoredSessionId());
+        setPendingUser(null);
+        setLocalError(null);
+      },
+    });
+  }
+
+  const canSend =
+    open &&
+    !!sessionId &&
+    !sendMutation.isPending &&
+    !!draft.trim();
 
   return (
     <aside
-      aria-label="Portfolio chat assistant (preview)"
-      className={clsx(
-        "fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur transition-transform",
-      )}
+      aria-label="Portfolio chat assistant"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur"
     >
       <div className="mx-auto flex max-w-6xl flex-col px-6">
         <button
@@ -52,9 +193,11 @@ export function ChatShell() {
           <span className="flex items-center gap-2 text-sm font-semibold text-slate-800">
             <Sparkles size={16} className="text-brand-600" aria-hidden />
             Ask the Portfolio Manager
-            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
-              Preview · Phase 3
-            </span>
+            {llmUnavailable ? (
+              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                Rule-only
+              </span>
+            ) : null}
           </span>
           {open ? (
             <ChevronDown size={16} className="text-slate-500" aria-hidden />
@@ -65,71 +208,218 @@ export function ChatShell() {
 
         {open ? (
           <div id="chat-panel" className="flex flex-col gap-3 pb-4">
-            <div
-              className="max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3"
+            {llmUnavailable ? (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800"
+              >
+                <AlertTriangle size={14} className="mt-0.5" aria-hidden />
+                <div>
+                  <strong className="font-semibold">LLM unavailable.</strong>{" "}
+                  The backend couldn&apos;t reach OpenAI (likely{" "}
+                  <code>OPENAI_API_KEY</code> is unset). Rule-based answers
+                  still work; the LLM toggle is disabled.
+                </div>
+              </div>
+            ) : null}
+
+            <ul
+              ref={listRef}
+              role="log"
               aria-live="polite"
+              aria-label="Chat transcript"
+              className="flex max-h-64 min-h-[140px] flex-col gap-2 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-3"
             >
-              <ul className="flex flex-col gap-2">
-                {SEEDED_CONVERSATION.map((m, i) => (
-                  <li
-                    key={i}
+              {messages.length === 0 ? (
+                <li className="text-center text-xs text-slate-500">
+                  Ask about your Sharpe, top holdings, or any term in the SPEC glossary.
+                </li>
+              ) : null}
+              {messages.map((m, i) => (
+                <li
+                  key={`${m.role}-${i}-${m.content.slice(0, 12)}`}
+                  className={clsx(
+                    "flex max-w-[85%] flex-col gap-1",
+                    m.role === "user" ? "self-end" : "self-start",
+                  )}
+                >
+                  <div
                     className={clsx(
-                      "max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed",
+                      "rounded-2xl px-3 py-2 text-sm leading-relaxed",
                       m.role === "user"
-                        ? "self-end bg-brand-600 text-white"
-                        : "self-start border border-slate-200 bg-white text-slate-700",
+                        ? "bg-brand-600 text-white"
+                        : "border border-slate-200 bg-white text-slate-700",
+                      m.pending ? "opacity-70" : null,
                     )}
                   >
                     {m.content}
-                  </li>
-                ))}
-              </ul>
+                  </div>
+                  {m.role === "assistant" && m.source ? (
+                    <span className="text-[10px] uppercase tracking-wide text-slate-400">
+                      via {m.source}
+                    </span>
+                  ) : null}
+                  {m.citations.length > 0 ? (
+                    <ul
+                      aria-label="Citations"
+                      className="flex flex-wrap gap-1.5"
+                    >
+                      {m.citations.map((c, idx) => (
+                        <li
+                          key={`${c.label}-${idx}`}
+                          className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600"
+                        >
+                          <span className="text-slate-500">{c.label}</span>
+                          <span className="font-semibold text-slate-800">{c.value}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </li>
+              ))}
+              {sendMutation.isPending ? (
+                <li className="self-start text-xs italic text-slate-400">
+                  Thinking…
+                </li>
+              ) : null}
+            </ul>
+
+            {localError && !llmUnavailable ? (
+              <p role="alert" className="text-xs text-red-600">
+                {localError}
+              </p>
+            ) : null}
+
+            <div
+              role="radiogroup"
+              aria-label="Answer mode"
+              className="flex flex-wrap items-center gap-2 text-xs"
+            >
+              <span className="font-medium text-slate-500">Mode:</span>
+              {MODE_OPTIONS.map((opt) => {
+                const disabled = opt.value === "llm" && llmUnavailable;
+                const control = (
+                  <label
+                    key={opt.value}
+                    className={clsx(
+                      "inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 transition",
+                      mode === opt.value
+                        ? "border-brand-500 bg-brand-50 text-brand-700"
+                        : "border-slate-300 bg-white text-slate-600 hover:border-slate-400",
+                      disabled ? "cursor-not-allowed opacity-50" : null,
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name={`${formId}-mode`}
+                      value={opt.value}
+                      checked={mode === opt.value}
+                      disabled={disabled}
+                      onChange={() => setMode(opt.value)}
+                      className="sr-only"
+                    />
+                    {opt.label}
+                  </label>
+                );
+                return disabled ? (
+                  <Tooltip
+                    key={opt.value}
+                    label="OPENAI_API_KEY is unset on the backend (LLM_UNAVAILABLE)."
+                  >
+                    {control}
+                  </Tooltip>
+                ) : (
+                  <Tooltip key={opt.value} label={opt.hint}>
+                    {control}
+                  </Tooltip>
+                );
+              })}
+              <button
+                type="button"
+                onClick={handleClear}
+                disabled={!persisted.length || deleteMutation.isPending}
+                className="ml-auto inline-flex items-center gap-1 rounded-full border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-500 transition hover:border-slate-400 hover:text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Trash2 size={12} aria-hidden />
+                Clear history
+              </button>
             </div>
 
             <div className="flex flex-wrap gap-2" aria-label="Sample questions">
               {SAMPLE_PROMPTS.map((p) => (
-                <Tooltip key={p} label="Chat is read-only until Phase 3.">
-                  <button
-                    type="button"
-                    disabled
-                    className="inline-flex cursor-not-allowed items-center rounded-full border border-dashed border-slate-300 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-400"
-                  >
-                    {p}
-                  </button>
-                </Tooltip>
+                <button
+                  key={p}
+                  type="button"
+                  disabled={sendMutation.isPending || !sessionId}
+                  onClick={() => void handleSubmit(p)}
+                  className="inline-flex items-center rounded-full border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-600 transition hover:border-slate-400 hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {p}
+                </button>
               ))}
             </div>
 
             <form
               className="flex items-start gap-2"
-              onSubmit={(e) => e.preventDefault()}
-              aria-disabled="true"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void handleSubmit(draft);
+              }}
             >
-              <label htmlFor="chat-input" className="sr-only">
+              <label htmlFor={`${formId}-chat-input`} className="sr-only">
                 Ask a question about your portfolio
               </label>
               <textarea
-                id="chat-input"
-                disabled
+                id={`${formId}-chat-input`}
                 rows={2}
-                placeholder="Chat is read-only in Phase 1 — Phase 3 wires this up to the LLM."
-                className="form-textarea flex-1 resize-none rounded-lg border border-slate-300 bg-slate-50 p-2 text-sm text-slate-500 placeholder:text-slate-400 disabled:cursor-not-allowed"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    void handleSubmit(draft);
+                  }
+                }}
+                placeholder={
+                  hasPortfolio
+                    ? "Ask about your portfolio — e.g. 'Why is NVDA overweight?'"
+                    : "Waiting for an optimizer result…"
+                }
+                className="form-textarea flex-1 resize-none rounded-lg border border-slate-300 bg-white p-2 text-sm text-slate-700 placeholder:text-slate-400"
               />
-              <Tooltip label="Chat coming in Phase 3 — the UI is ready but the backend is not yet wired.">
-                <button
-                  type="button"
-                  disabled
-                  aria-label="Send message (disabled)"
-                  className="inline-flex h-10 items-center gap-1.5 self-end rounded-lg border border-slate-300 bg-slate-100 px-3 text-sm font-semibold text-slate-400"
-                >
-                  <Lock size={14} aria-hidden />
-                  <SendHorizontal size={14} aria-hidden />
-                </button>
-              </Tooltip>
+              <button
+                type="submit"
+                disabled={!canSend}
+                aria-label="Send message"
+                className="inline-flex h-10 items-center gap-1.5 self-end rounded-lg border border-brand-500 bg-brand-600 px-3 text-sm font-semibold text-white transition hover:bg-brand-500 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-200 disabled:text-slate-400"
+              >
+                <SendHorizontal size={14} aria-hidden />
+                Send
+              </button>
             </form>
           </div>
         ) : null}
       </div>
     </aside>
   );
+}
+
+/**
+ * The provider decorates `complete` with client-only fields
+ * (`targetReturnOverride`, `yUtility`, `yTarget`) so the risk slider can
+ * explain overrides live. The backend's `CompletePortfolio` Pydantic model
+ * has `extra="forbid"`, so we rebuild the payload with only the wire fields
+ * before sending it as chat context.
+ */
+function stripDerivedComplete(result: OptimizationResult): OptimizationResult {
+  const { complete, ...rest } = result;
+  const sanitized: CompletePortfolio = {
+    yStar: complete.yStar,
+    weightRiskFree: complete.weightRiskFree,
+    weights: complete.weights,
+    expectedReturn: complete.expectedReturn,
+    stdDev: complete.stdDev,
+    leverageUsed: complete.leverageUsed,
+  };
+  return { ...rest, complete: sanitized };
 }

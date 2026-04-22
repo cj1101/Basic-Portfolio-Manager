@@ -14,6 +14,7 @@ from app import __version__
 from app.api.deps import AppState
 from app.api.routes import router as api_router
 from app.data.cache import MarketCache
+from app.data.chat_store import ChatStore
 from app.data.clients.alpha_vantage import AlphaVantageClient
 from app.data.clients.fred import FredClient
 from app.data.clients.yahoo import YahooClient
@@ -26,6 +27,8 @@ from app.errors import (
     unhandled_exception_handler,
     validation_handler,
 )
+from app.services.chat.llm import build_openai_client
+from app.services.chat.service import ChatService
 from app.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
@@ -74,6 +77,14 @@ async def build_state(settings: Settings) -> AppState:
         risk_free_rate_ttl_seconds=settings.risk_free_rate_cache_ttl_seconds,
     )
 
+    chat_store = ChatStore(settings.cache_db_path)
+    await chat_store.connect()
+
+    openai_client = build_openai_client(settings)
+    if openai_client is None:
+        logger.info("OPENAI_API_KEY is not set; /api/chat will operate in rule-only mode.")
+    chat_service = ChatService(llm=openai_client)
+
     return AppState(
         settings=settings,
         cache=cache,
@@ -82,6 +93,8 @@ async def build_state(settings: Settings) -> AppState:
         yahoo=yahoo,
         fred=fred,
         service=service,
+        chat_store=chat_store,
+        chat_service=chat_service,
     )
 
 
@@ -91,6 +104,12 @@ async def teardown_state(state: AppState) -> None:
     if state.fred is not None:
         await state.fred.close()
     await state.yahoo.close()
+    if state.chat_service.llm_available:
+        # The same AsyncOpenAI instance is held inside the client wrapper.
+        llm = state.chat_service._llm  # noqa: SLF001 — clean shutdown only
+        if llm is not None:
+            await llm.close()
+    await state.chat_store.close()
     await state.cache.close()
 
 

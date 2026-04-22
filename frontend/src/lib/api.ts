@@ -11,6 +11,9 @@
  * to `http://localhost:8000`. Override via `VITE_API_BASE_URL` in production.
  */
 import type {
+  ChatRequest,
+  ChatResponse,
+  ChatSessionResponse,
   ErrorCode,
   OptimizationRequest,
   OptimizationResult,
@@ -149,4 +152,55 @@ export interface RiskFreeRateResponse {
 
 export function getRiskFreeRate(init?: RequestInit): Promise<RiskFreeRateResponse> {
   return request<RiskFreeRateResponse>("/risk-free-rate", init);
+}
+
+/**
+ * Chat (Agent E)
+ * ----------------
+ * Hybrid rule + LLM chat per CONTRACTS.md §5.9 / §5.11. Every function here
+ * is a thin wrapper around `request<T>`; the frontend query layer is
+ * responsible for caching and optimistic invalidation.
+ */
+
+export function postChat(body: ChatRequest, init?: RequestInit): Promise<ChatResponse> {
+  return request<ChatResponse>("/chat", {
+    ...init,
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function getChatSession(
+  sessionId: string,
+  init?: RequestInit,
+): Promise<ChatSessionResponse> {
+  return request<ChatSessionResponse>(
+    `/chat/sessions/${encodeURIComponent(sessionId)}`,
+    init,
+  );
+}
+
+export function postChatSessionMessage(
+  sessionId: string,
+  body: ChatRequest,
+  init?: RequestInit,
+): Promise<ChatResponse> {
+  return request<ChatResponse>(
+    `/chat/sessions/${encodeURIComponent(sessionId)}/messages`,
+    {
+      ...init,
+      method: "POST",
+      body: JSON.stringify(body),
+    },
+  );
+}
+
+export function deleteChatSession(
+  sessionId: string,
+  init?: RequestInit,
+): Promise<void> {
+  return request<void>(`/chat/sessions/${encodeURIComponent(sessionId)}`, {
+    ...init,
+    method: "DELETE",
+  });
 }

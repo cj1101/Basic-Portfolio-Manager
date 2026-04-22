@@ -89,6 +89,21 @@ class ChatSource(str, Enum):
 export type ChatSource = "rule" | "llm";
 ```
 
+### `ChatMode`
+
+Client-selected routing mode for the hybrid chat engine. `auto` is the default (rule-first, LLM fallback when configured). `rule` locks the engine to the rule-based intent classifier. `llm` forces the OpenAI path and returns `LLM_UNAVAILABLE` when `OPENAI_API_KEY` is unset.
+
+```python
+class ChatMode(str, Enum):
+    AUTO = "auto"
+    RULE = "rule"
+    LLM = "llm"
+```
+
+```ts
+export type ChatMode = "auto" | "rule" | "llm";
+```
+
 ---
 
 ## 3. Domain types
@@ -428,6 +443,8 @@ class ChatMessage(BaseModel):
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
     portfolio_context: OptimizationResult | None = None
+    mode: ChatMode = ChatMode.AUTO
+    session_id: str | None = None        # opaque client-owned UUID; when set, server persists the turn
 
 class ChatCitation(BaseModel):
     label: str                          # e.g. "ORP weight for NVDA"
@@ -448,6 +465,8 @@ export interface ChatMessage {
 export interface ChatRequest {
   messages: ChatMessage[];
   portfolioContext?: OptimizationResult;
+  mode?: ChatMode;                  // default "auto"
+  sessionId?: string;
 }
 
 export interface ChatCitation { label: string; value: string; }
@@ -456,6 +475,44 @@ export interface ChatResponse {
   answer: string;
   source: ChatSource;
   citations: ChatCitation[];
+}
+```
+
+### `ChatHistoryEntry` / `ChatSessionResponse`
+
+Server-persisted chat log. Keyed by an opaque `sessionId` (client-generated UUID stored in `localStorage`). The `portfolioId` field is optional and reserved for Phase 3C Multi-portfolio (forward-compatible FK).
+
+```python
+class ChatHistoryEntry(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+    source: ChatSource | None = None      # null on user turns
+    citations: list[ChatCitation] = []
+    created_at: datetime
+
+class ChatSessionResponse(BaseModel):
+    session_id: str
+    portfolio_id: str | None = None
+    created_at: datetime
+    updated_at: datetime
+    messages: list[ChatHistoryEntry]
+```
+
+```ts
+export interface ChatHistoryEntry {
+  role: "user" | "assistant";
+  content: string;
+  source?: ChatSource;                  // undefined on user turns
+  citations: ChatCitation[];
+  createdAt: string;                    // ISO-8601 UTC
+}
+
+export interface ChatSessionResponse {
+  sessionId: string;
+  portfolioId?: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatHistoryEntry[];
 }
 ```
 
@@ -635,7 +692,17 @@ Runs `/optimize` for each saved portfolio and returns them keyed by `id`.
 
 ### 5.9 `POST /api/chat` — body `ChatRequest` → `ChatResponse`
 
-### 5.10 `POST /api/export/pdf` — body `{ result: OptimizationResult }` → `application/pdf` binary
+Hybrid rule + LLM chat. When `mode="auto"` (default), the rule-based intent classifier answers first and the OpenAI LLM is used only on intent miss (and only when `OPENAI_API_KEY` is set). `mode="rule"` locks to the rule engine. `mode="llm"` forces the LLM path and returns `503 LLM_UNAVAILABLE` when the key is unset. If `sessionId` is provided, the turn is appended to the session log via §5.11.
+
+### 5.11 Chat sessions
+
+Browser-owned chat history, persisted to the backend SQLite store at `CACHE_DB_PATH`. The `sessionId` is generated client-side (UUID v4) and stored in `localStorage`. Sessions are independent of saved portfolios — the forward-compatible `portfolioId` FK is reserved for Phase 3C.
+
+- `GET    /api/chat/sessions/{sessionId}` → `ChatSessionResponse`. Returns an empty message list for unknown session IDs (lazy creation on first POST).
+- `POST   /api/chat/sessions/{sessionId}/messages` — body `ChatRequest` → `ChatResponse`. Persists the final user turn plus the assistant reply (with `source` and `citations`).
+- `DELETE /api/chat/sessions/{sessionId}` → `204 No Content`.
+
+### 5.12 `POST /api/export/pdf` — body `{ result: OptimizationResult }` → `application/pdf` binary
 
 Returns the rendered report as a PDF stream. `Content-Disposition: attachment; filename="portfolio-<requestId>.pdf"`.
 

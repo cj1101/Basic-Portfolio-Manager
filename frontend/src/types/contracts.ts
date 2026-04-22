@@ -28,6 +28,8 @@ export type ErrorCode =
 
 export type ChatSource = "rule" | "llm";
 
+export type ChatMode = "auto" | "rule" | "llm";
+
 // ---------------------------------------------------------------------------
 // 3. Domain types
 // ---------------------------------------------------------------------------
@@ -172,6 +174,8 @@ export interface ChatMessage {
 export interface ChatRequest {
   messages: ChatMessage[];
   portfolioContext?: OptimizationResult;
+  mode?: ChatMode;
+  sessionId?: string;
 }
 
 export interface ChatCitation {
@@ -183,6 +187,22 @@ export interface ChatResponse {
   answer: string;
   source: ChatSource;
   citations: ChatCitation[];
+}
+
+export interface ChatHistoryEntry {
+  role: "user" | "assistant";
+  content: string;
+  source?: ChatSource;
+  citations: ChatCitation[];
+  createdAt: string;
+}
+
+export interface ChatSessionResponse {
+  sessionId: string;
+  portfolioId?: string;
+  createdAt: string;
+  updatedAt: string;
+  messages: ChatHistoryEntry[];
 }
 
 // ---------------------------------------------------------------------------

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Response
 
+from app.api.chat import router as chat_router
 from app.api.deps import get_service
 from app.api.optimize import router as optimize_router
 from app.data.service import DataService
@@ -71,6 +72,7 @@ def _set_provenance(response: Response, source: str, warnings: list[str]) -> Non
 
 
 router.include_router(optimize_router)
+router.include_router(chat_router)
 
 
 __all__ = ["router"]

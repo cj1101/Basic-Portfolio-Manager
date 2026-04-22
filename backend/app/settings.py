@@ -48,6 +48,15 @@ class Settings(BaseSettings):
 
     http_timeout_seconds: float = 15.0
 
+    # Chat / LLM (Agent E). The OpenAI SDK also honours OPENAI_BASE_URL, but
+    # keeping an explicit setting means tests and self-hosted deployments can
+    # point at a compatible endpoint (e.g. Azure OpenAI) without reaching into
+    # the SDK internals.
+    openai_model: str = "gpt-4o-mini"
+    openai_base_url: str | None = None
+    chat_llm_timeout_seconds: float = 10.0
+    chat_history_limit: int = 100
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def _split_cors(cls, v: object) -> object:

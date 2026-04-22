@@ -8,14 +8,26 @@
  * side — see `computeCompleteFromORP`. We keep `riskAversion` out of the key
  * so flipping it only updates the Complete Portfolio, not the ORP.
  */
-import { useQuery, type UseQueryResult } from "@tanstack/react-query";
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationResult,
+  type UseQueryResult,
+} from "@tanstack/react-query";
 import type {
+  ChatRequest,
+  ChatResponse,
+  ChatSessionResponse,
   OptimizationRequest,
   OptimizationResult,
 } from "@/types/contracts";
 import {
   ApiError,
+  deleteChatSession,
+  getChatSession,
   getRiskFreeRate,
+  postChatSessionMessage,
   postOptimize,
   type RiskFreeRateResponse,
 } from "./api";
@@ -96,5 +108,84 @@ export function useRiskFreeRate(): UseQueryResult<RiskFreeRateResponse, ApiError
     queryFn: ({ signal }) => getRiskFreeRate({ signal }),
     staleTime: 5 * 60_000,
     retry: 1,
+  });
+}
+
+/**
+ * Chat (Agent E)
+ * ----------------
+ * `useChatSession` is the read-side and re-runs whenever the session id
+ * changes. `useSendChatMessage` is the write-side; on success we invalidate
+ * the matching session so the persisted history re-renders immediately.
+ * `useDeleteChatSession` is provided so the UI's "clear history" button can
+ * purge the server-side log.
+ *
+ * LLM errors (503 `LLM_UNAVAILABLE`) must not be retried automatically —
+ * they are a product decision (the key is unset or the provider is down),
+ * not a transient failure, and retrying only masks the banner from the user.
+ */
+
+export function chatSessionQueryKey(sessionId: string) {
+  return ["chat", "session", sessionId] as const;
+}
+
+export function useChatSession(
+  sessionId: string | null,
+): UseQueryResult<ChatSessionResponse, ApiError> {
+  return useQuery<ChatSessionResponse, ApiError>({
+    queryKey: chatSessionQueryKey(sessionId ?? "none"),
+    queryFn: ({ signal }) => getChatSession(sessionId as string, { signal }),
+    enabled: !!sessionId,
+    staleTime: 30_000,
+    retry: (count, error) => {
+      if (!(error instanceof ApiError)) return count < 1;
+      if (error.code === "LLM_UNAVAILABLE") return false;
+      return count < 1;
+    },
+  });
+}
+
+export function useSendChatMessage(
+  sessionId: string | null,
+): UseMutationResult<ChatResponse, ApiError, ChatRequest> {
+  const client = useQueryClient();
+  return useMutation<ChatResponse, ApiError, ChatRequest>({
+    mutationFn: (body: ChatRequest) => {
+      if (!sessionId) {
+        throw new ApiError({
+          code: "INTERNAL",
+          message: "No active chat session.",
+          status: 0,
+        });
+      }
+      return postChatSessionMessage(sessionId, body);
+    },
+    onSuccess: () => {
+      if (sessionId) {
+        void client.invalidateQueries({ queryKey: chatSessionQueryKey(sessionId) });
+      }
+    },
+    retry: (count, error) => {
+      if (!(error instanceof ApiError)) return count < 1;
+      if (error.code === "LLM_UNAVAILABLE") return false;
+      return count < 1;
+    },
+  });
+}
+
+export function useDeleteChatSession(
+  sessionId: string | null,
+): UseMutationResult<void, ApiError, void> {
+  const client = useQueryClient();
+  return useMutation<void, ApiError, void>({
+    mutationFn: () => {
+      if (!sessionId) return Promise.resolve();
+      return deleteChatSession(sessionId);
+    },
+    onSuccess: () => {
+      if (sessionId) {
+        void client.invalidateQueries({ queryKey: chatSessionQueryKey(sessionId) });
+      }
+    },
   });
 }

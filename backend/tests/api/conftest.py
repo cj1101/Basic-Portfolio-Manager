@@ -13,6 +13,7 @@ from httpx import ASGITransport
 from app.api.deps import AppState
 from app.api.routes import router as api_router
 from app.data.cache import MarketCache
+from app.data.chat_store import ChatStore
 from app.data.mock import generate_daily_bars
 from app.data.rate_limit import AlphaVantageRateLimiter
 from app.data.service import DataService
@@ -23,6 +24,7 @@ from app.errors import (
     unhandled_exception_handler,
     validation_handler,
 )
+from app.services.chat.service import ChatService
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -97,6 +99,9 @@ async def api_state(cache: MarketCache, isolated_settings) -> AsyncIterator[AppS
         quote_ttl_seconds=300,
         risk_free_rate_ttl_seconds=86400,
     )
+    chat_store = ChatStore(isolated_settings.cache_db_path)
+    await chat_store.connect()
+    chat_service = ChatService(llm=None)
     state = AppState(
         settings=isolated_settings,
         cache=cache,
@@ -105,8 +110,13 @@ async def api_state(cache: MarketCache, isolated_settings) -> AsyncIterator[AppS
         yahoo=yahoo,  # type: ignore[arg-type]
         fred=fred,  # type: ignore[arg-type]
         service=service,
+        chat_store=chat_store,
+        chat_service=chat_service,
     )
-    yield state
+    try:
+        yield state
+    finally:
+        await chat_store.close()
 
 
 @pytest_asyncio.fixture
