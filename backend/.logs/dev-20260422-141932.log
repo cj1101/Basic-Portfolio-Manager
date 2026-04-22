@@ -207,3 +207,34 @@
 [2026-04-22T15:32:54] [launcher] …still running
 [2026-04-22T15:33:24] [launcher] …still running
 [2026-04-22T15:33:54] [launcher] …still running
+[2026-04-22T15:34:24] [launcher] …still running
+[2026-04-22T15:34:54] [launcher] …still running
+[2026-04-22T15:34:55] [backend]  INFO:     127.0.0.1:61797 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T15:34:55] [backend]  INFO:     127.0.0.1:61801 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T15:34:55] [backend]  INFO:     127.0.0.1:61802 - "GET /api/chat/sessions/cfec8625-8df4-4d46-adfc-8a14f0eb7fbf HTTP/1.1" 200 OK
+[2026-04-22T15:34:55] [backend]  INFO:     127.0.0.1:61798 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T15:34:55] [backend]  INFO:     127.0.0.1:61796 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T15:35:25] [launcher] …still running
+[2026-04-22T15:35:55] [launcher] …still running
+[2026-04-22T15:36:25] [launcher] …still running
+[2026-04-22T15:36:41] [frontend] 15:36:41 [vite] hmr update /src/components/charts/EfficientFrontierChart.tsx, /src/index.css
+[2026-04-22T15:36:44] [frontend] 15:36:44 [vite] hmr update /src/components/tabs/EfficientFrontierTab.tsx, /src/index.css
+[2026-04-22T15:36:56] [launcher] …still running
+[2026-04-22T15:37:26] [launcher] …still running
+[2026-04-22T15:37:56] [launcher] …still running
+[2026-04-22T15:38:26] [launcher] …still running
+[2026-04-22T15:38:56] [launcher] …still running
+[2026-04-22T15:39:26] [launcher] …still running
+[2026-04-22T15:39:56] [launcher] …still running
+[2026-04-22T15:40:27] [launcher] …still running
+[2026-04-22T15:40:57] [launcher] …still running
+[2026-04-22T15:41:27] [launcher] …still running
+[2026-04-22T15:41:57] [launcher] …still running
+[2026-04-22T15:42:27] [launcher] …still running
+[2026-04-22T15:42:46] [frontend] 15:42:46 [vite] hmr update /src/components/charts/EfficientFrontierChart.tsx, /src/index.css
+[2026-04-22T15:42:57] [launcher] …still running
+[2026-04-22T15:43:03] [frontend] 15:43:03 [vite] hmr update /src/components/charts/EfficientFrontierChart.tsx, /src/index.css
+[2026-04-22T15:43:08] [frontend] 15:43:08 [vite] hmr update /src/components/tabs/EfficientFrontierTab.tsx, /src/index.css
+[2026-04-22T15:43:27] [launcher] …still running
+[2026-04-22T15:43:58] [launcher] …still running
+[2026-04-22T15:44:28] [launcher] …still running

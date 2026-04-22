@@ -23,8 +23,14 @@ export function EfficientFrontierTab() {
         </p>
       </header>
 
-      <section className="card p-5">
-        <EfficientFrontierChart frontier={frontierPoints} orp={orp} stocks={stocks} />
+      <section className="card p-6">
+        <EfficientFrontierChart
+          frontier={frontierPoints}
+          orp={orp}
+          stocks={stocks}
+          covariance={result.covariance}
+          height={440}
+        />
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
