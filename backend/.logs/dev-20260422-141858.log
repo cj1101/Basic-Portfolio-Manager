@@ -1,0 +1,16 @@
+[2026-04-22T14:18:58] [launcher] logging to C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.logs\dev-20260422-141858.log
+[2026-04-22T14:18:58] [launcher] starting backend: C:\Users\charl\.local\bin\uv.EXE run --active uvicorn app.main:app --reload --port 8000 --log-level debug
+[2026-04-22T14:18:58] [launcher] starting frontend: C:\Users\charl\AppData\Local\pnpm\.tools\pnpm\9.7.0\bin\pnpm.CMD --filter portfolio-manager-frontend run dev
+[2026-04-22T14:18:58] [backend]  INFO:     Will watch for changes in these directories: ['C:\\Users\\charl\\CodingProjets\\automatedBrokerageClassVersion\\backend']
+[2026-04-22T14:18:58] [backend]  INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+[2026-04-22T14:18:58] [backend]  INFO:     Started reloader process [45164] using WatchFiles
+[2026-04-22T14:18:59] [frontend] > portfolio-manager-frontend@0.1.0 dev C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\frontend
+[2026-04-22T14:18:59] [frontend] > vite
+[2026-04-22T14:18:59] [backend]  WARNING:  WatchFiles detected changes in '.venv\Lib\site-packages\numpy\_distributor_init.py'. Reloading...
+[2026-04-22T14:19:00] [backend]   INFO:     Started server process [58512]
+[2026-04-22T14:19:00] [backend]  INFO:     Waiting for application startup.
+[2026-04-22T14:19:01] [backend]  INFO:     Application startup complete.
+[2026-04-22T14:19:02] [frontend] Re-optimizing dependencies because lockfile has changed
+[2026-04-22T14:19:10] [frontend]   VITE v5.4.21  ready in 11830 ms
+[2026-04-22T14:19:10] [launcher] terminating backend…
+[2026-04-22T14:19:10] [launcher] terminating frontend…

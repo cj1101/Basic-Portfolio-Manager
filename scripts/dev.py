@@ -63,7 +63,14 @@ def _log(tag: str, msg: str, log_file: IO[str]) -> None:
     color = COLORS.get(tag, "")
     prefix = f"[{tag}]".ljust(10)
     line = f"{_color(prefix, color)} {msg}"
-    print(line, flush=True)
+    try:
+        print(line, flush=True)
+    except UnicodeEncodeError:
+        # Windows terminals commonly use cp1252; replace unsupported symbols
+        # (for example Vite's arrow glyph) so the launcher doesn't crash.
+        encoding = sys.stdout.encoding or "utf-8"
+        safe_line = line.encode(encoding, errors="replace").decode(encoding, errors="replace")
+        print(safe_line, flush=True)
     try:
         log_file.write(f"[{datetime.now().isoformat(timespec='seconds')}] {prefix} {msg}\n")
         log_file.flush()
@@ -97,6 +104,7 @@ def _locate_backend_command(port: int) -> list[str]:
         return [
             uv_path,
             "run",
+            "--active",
             "uvicorn",
             "app.main:app",
             "--reload",

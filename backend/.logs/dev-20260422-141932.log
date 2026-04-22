@@ -1,0 +1,61 @@
+[2026-04-22T14:19:32] [launcher] logging to C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.logs\dev-20260422-141932.log
+[2026-04-22T14:19:32] [launcher] starting backend: C:\Users\charl\.local\bin\uv.EXE run --active uvicorn app.main:app --reload --port 8000 --log-level debug
+[2026-04-22T14:19:32] [launcher] starting frontend: C:\Users\charl\AppData\Local\pnpm\.tools\pnpm\9.7.0\bin\pnpm.CMD --filter portfolio-manager-frontend run dev
+[2026-04-22T14:19:32] [backend]  INFO:     Will watch for changes in these directories: ['C:\\Users\\charl\\CodingProjets\\automatedBrokerageClassVersion\\backend']
+[2026-04-22T14:19:32] [backend]  INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+[2026-04-22T14:19:32] [backend]  INFO:     Started reloader process [48064] using WatchFiles
+[2026-04-22T14:19:32] [frontend] > portfolio-manager-frontend@0.1.0 dev C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\frontend
+[2026-04-22T14:19:32] [frontend] > vite
+[2026-04-22T14:19:33] [frontend]   VITE v5.4.21  ready in 648 ms
+[2026-04-22T14:19:33] [frontend]   ➜  Local:   http://127.0.0.1:5173/
+[2026-04-22T14:19:33] [backend]  INFO:     Started server process [35320]
+[2026-04-22T14:19:33] [backend]  INFO:     Waiting for application startup.
+[2026-04-22T14:19:34] [backend]  INFO:     Application startup complete.
+[2026-04-22T14:20:02] [launcher] …still running
+[2026-04-22T14:20:21] [backend]  INFO:     127.0.0.1:64681 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T14:20:21] [backend]  INFO:     127.0.0.1:64683 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T14:20:21] [backend]  INFO:     127.0.0.1:64684 - "GET /api/chat/sessions/750de36d-03a9-4daf-b1ca-5777b84fdfd3 HTTP/1.1" 200 OK
+[2026-04-22T14:20:22] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly unlock all premium endpoints
+[2026-04-22T14:20:22] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! Please consider spreading out your free API requests more sparingly (1 request per second). You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to lift the free key rate limit (25 requests per day), raise the per-second burst limit, and instantly unlock all premium endpoints
+[2026-04-22T14:20:22] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! Please consider spreading out your free API requests more sparingly (1 request per second). You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to lift the free key rate limit (25 requests per day), raise the per-second burst limit, and instantly unlock all premium endpoints
+[2026-04-22T14:20:22] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! Please consider spreading out your free API requests more sparingly (1 request per second). You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to lift the free key rate limit (25 requests per day), raise the per-second burst limit, and instantly unlock all premium endpoints
+[2026-04-22T14:20:22] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! Please consider spreading out your free API requests more sparingly (1 request per second). You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to lift the free key rate limit (25 requests per day), raise the per-second burst limit, and instantly unlock all premium endpoints
+[2026-04-22T14:20:22] [backend]  WARNING:  WatchFiles detected changes in '.venv\Lib\site-packages\curl_cffi\__version__.py'. Reloading...
+[2026-04-22T14:20:32] [launcher] …still running
+[2026-04-22T14:20:34] [backend]   alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly unlock all premium endpoints
+[2026-04-22T14:20:34] [backend]  INFO:     127.0.0.1:64679 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:20:34] [backend]  INFO:     127.0.0.1:64682 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:21:02] [launcher] …still running
+[2026-04-22T14:21:21] [backend]  INFO:     127.0.0.1:53043 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T14:21:21] [backend]  INFO:     127.0.0.1:53046 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T14:21:21] [backend]  INFO:     127.0.0.1:53042 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:21:21] [backend]  INFO:     127.0.0.1:53044 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:21:21] [backend]  INFO:     127.0.0.1:62261 - "GET /api/chat/sessions/f89be0b7-c359-4b09-bac2-024413a66796 HTTP/1.1" 200 OK
+[2026-04-22T14:21:33] [launcher] …still running
+[2026-04-22T14:21:43] [backend]  INFO:     127.0.0.1:61364 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:22:03] [launcher] …still running
+[2026-04-22T14:22:33] [launcher] …still running
+[2026-04-22T14:23:03] [launcher] …still running
+[2026-04-22T14:23:33] [launcher] …still running
+[2026-04-22T14:23:37] [backend]  INFO:     127.0.0.1:55025 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:24:04] [launcher] …still running
+[2026-04-22T14:24:33] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly unlock all premium endpoints
+[2026-04-22T14:24:34] [launcher] …still running
+[2026-04-22T14:24:34] [backend]  INFO:     127.0.0.1:62577 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:24:35] [backend]  INFO:     127.0.0.1:54982 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:24:36] [backend]  INFO:     127.0.0.1:57187 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:24:36] [backend]  INFO:     127.0.0.1:63201 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:24:40] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly unlock all premium endpoints
+[2026-04-22T14:24:40] [backend]  HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: AAOL"}}}
+[2026-04-22T14:24:41] [backend]  $AAOL: possibly delisted; no timezone found
+[2026-04-22T14:24:41] [backend]  INFO:     127.0.0.1:55720 - "POST /api/optimize HTTP/1.1" 404 Not Found
+[2026-04-22T14:24:56] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly unlock all premium endpoints
+[2026-04-22T14:24:56] [backend]  HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: AOLL"}}}
+[2026-04-22T14:24:57] [backend]  $AOLL: possibly delisted; no timezone found
+[2026-04-22T14:24:57] [backend]  INFO:     127.0.0.1:56260 - "POST /api/optimize HTTP/1.1" 404 Not Found
+[2026-04-22T14:25:04] [launcher] …still running
+[2026-04-22T14:25:34] [launcher] …still running
+[2026-04-22T14:25:49] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly unlock all premium endpoints
+[2026-04-22T14:25:49] [backend]  INFO:     127.0.0.1:65192 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T14:26:04] [launcher] …still running
+[2026-04-22T14:26:35] [launcher] …still running
