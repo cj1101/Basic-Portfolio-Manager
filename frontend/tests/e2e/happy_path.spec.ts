@@ -56,10 +56,13 @@ test.describe("Happy path", () => {
     const gear = page.getByRole("button", { name: /settings/i }).first();
     await gear.click();
 
-    // The Settings quick-picks should include both mocked model buttons.
+    // The active model may pre-filter quick picks, so search explicitly for each one.
+    const modelInput = page.getByLabel(/chat llm model/i);
+    await modelInput.clear();
     await expect(
       page.getByRole("button", { name: /google\/gemma-4-31b-it\s+gemma 4 31b it/i }),
     ).toBeVisible();
+    await modelInput.fill("claude");
     await expect(
       page.getByRole("button", { name: /anthropic\/claude-3\.5-sonnet\s+claude 3\.5 sonnet/i }),
     ).toBeVisible();
