@@ -470,3 +470,10 @@
 [2026-04-22T16:43:50] [backend]  INFO:     127.0.0.1:59261 - "POST /api/optimize HTTP/1.1" 200 OK
 [2026-04-22T16:43:50] [backend]  INFO:     127.0.0.1:59263 - "POST /api/optimize HTTP/1.1" 200 OK
 [2026-04-22T16:43:50] [backend]  INFO:     127.0.0.1:59267 - "GET /api/chat/sessions/cfec8625-8df4-4d46-adfc-8a14f0eb7fbf HTTP/1.1" 200 OK
+[2026-04-22T16:44:17] [launcher] …still running
+[2026-04-22T16:44:20] [backend]  INFO:     127.0.0.1:52767 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T16:44:21] [backend]  INFO:     127.0.0.1:59197 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T16:44:22] [backend]  INFO:     127.0.0.1:62211 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T16:44:31] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly unlock all premium endpoints
+[2026-04-22T16:44:31] [backend]  INFO:     127.0.0.1:59890 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T16:44:33] [backend]  INFO:     127.0.0.1:62890 - "POST /api/optimize HTTP/1.1" 200 OK
