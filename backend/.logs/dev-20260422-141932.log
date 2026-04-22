@@ -77,3 +77,43 @@
 [2026-04-22T14:34:37] [launcher] …still running
 [2026-04-22T14:35:07] [launcher] …still running
 [2026-04-22T14:35:37] [launcher] …still running
+[2026-04-22T14:36:07] [launcher] …still running
+[2026-04-22T14:36:37] [launcher] …still running
+[2026-04-22T14:37:07] [launcher] …still running
+[2026-04-22T14:37:37] [launcher] …still running
+[2026-04-22T14:38:08] [launcher] …still running
+[2026-04-22T14:38:38] [launcher] …still running
+[2026-04-22T14:39:08] [launcher] …still running
+[2026-04-22T14:39:38] [launcher] …still running
+[2026-04-22T14:40:08] [launcher] …still running
+[2026-04-22T14:40:38] [launcher] …still running
+[2026-04-22T14:40:49] [frontend] 14:40:49 [vite] hmr update /src/components/Settings.tsx, /src/index.css
+[2026-04-22T14:40:59] [frontend] 14:40:59 [vite] hmr update /src/state/settingsContext.tsx, /src/index.css
+[2026-04-22T14:40:59] [frontend] 14:40:59 [vite] hmr invalidate /src/state/settingsContext.tsx Could not Fast Refresh (export removed)
+[2026-04-22T14:40:59] [frontend] 14:40:59 [vite] page reload src/state/settingsContext.tsx
+[2026-04-22T14:41:08] [launcher] …still running
+[2026-04-22T14:41:09] [frontend] 14:41:09 [vite] hmr update /src/components/Settings.tsx, /src/index.css
+[2026-04-22T14:41:13] [frontend] 14:41:13 [vite] hmr update /src/components/chat/ChatShell.tsx, /src/index.css
+[2026-04-22T14:41:39] [launcher] …still running
+[2026-04-22T14:42:09] [launcher] …still running
+[2026-04-22T14:42:39] [launcher] …still running
+[2026-04-22T14:42:43] [frontend] 14:42:43 [vite] hmr update /src/state/settingsContext.tsx, /src/index.css
+[2026-04-22T14:43:09] [launcher] …still running
+[2026-04-22T14:43:39] [launcher] …still running
+[2026-04-22T14:44:09] [launcher] …still running
+[2026-04-22T14:44:39] [launcher] …still running
+[2026-04-22T14:45:09] [launcher] …still running
+[2026-04-22T14:45:40] [launcher] …still running
+[2026-04-22T14:46:10] [launcher] …still running
+[2026-04-22T14:46:40] [launcher] …still running
+[2026-04-22T14:46:57] [frontend] 14:46:57 [vite] page reload playwright-report/index.html
+[2026-04-22T14:46:57] [frontend] 14:46:57 [vite] page reload playwright-report/index.html
+[2026-04-22T14:47:10] [launcher] …still running
+[2026-04-22T14:47:40] [launcher] …still running
+[2026-04-22T14:48:10] [launcher] …still running
+[2026-04-22T14:48:32] [frontend] 14:48:32 [vite] page reload playwright-report/index.html
+[2026-04-22T14:48:41] [launcher] …still running
+[2026-04-22T14:48:46] [frontend] 14:48:46 [vite] page reload playwright-report/index.html
+[2026-04-22T14:49:11] [launcher] …still running
+[2026-04-22T14:49:41] [launcher] …still running
+[2026-04-22T14:50:11] [launcher] …still running

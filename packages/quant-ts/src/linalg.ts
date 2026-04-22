@@ -368,12 +368,13 @@ function matMul(a: Matrix, b: Matrix): Matrix {
   const out: Matrix = Array.from({ length: ad.rows }, () => new Array<number>(bd.cols).fill(0));
   for (let i = 0; i < ad.rows; i += 1) {
     const rowA = a[i] as Row;
+    const outRow = out[i] as Row;
     for (let k = 0; k < ad.cols; k += 1) {
       const aik = rowA[k] as number;
       if (aik === 0) continue;
       const rowB = b[k] as Row;
       for (let j = 0; j < bd.cols; j += 1) {
-        (out[i] as Row)[j] += aik * (rowB[j] as number);
+        outRow[j] = (outRow[j] as number) + aik * (rowB[j] as number);
       }
     }
   }

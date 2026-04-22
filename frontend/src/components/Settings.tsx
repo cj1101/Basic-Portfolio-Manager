@@ -2,7 +2,8 @@ import { useId, useMemo, useRef, useState } from "react";
 import clsx from "clsx";
 import { Settings as SettingsIcon, X, Loader2, AlertTriangle } from "lucide-react";
 import { useLlmDefault, useLlmModels } from "@/lib/queries";
-import { DEFAULT_LLM_MODEL, useSettings } from "@/state/settingsContext";
+import { DEFAULT_LLM_MODEL } from "@/state/settingsContext";
+import { useSettings } from "@/state/settingsHooks";
 import { ApiError } from "@/lib/api";
 
 /**
@@ -23,7 +24,7 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const listId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
 
-  const models = modelsQuery.data?.models ?? [];
+  const models = useMemo(() => modelsQuery.data?.models ?? [], [modelsQuery.data?.models]);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return models.slice(0, 30);

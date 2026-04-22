@@ -72,7 +72,7 @@ export function expectedReturns(
   const out = new Array<number>(n).fill(0);
   for (let i = 0; i < t; i += 1) {
     const row = returns[i] as readonly number[];
-    for (let j = 0; j < n; j += 1) out[j] += row[j] as number;
+    for (let j = 0; j < n; j += 1) out[j]! += row[j] as number;
   }
   return out.map((s) => (s / t) * factor);
 }
@@ -93,7 +93,7 @@ export function stdDevs(
   const sum = new Array<number>(n).fill(0);
   for (let i = 0; i < t; i += 1) {
     const row = returns[i] as readonly number[];
-    for (let j = 0; j < n; j += 1) sum[j] += row[j] as number;
+    for (let j = 0; j < n; j += 1) sum[j]! += row[j] as number;
   }
   const mean = sum.map((s) => s / t);
   const sq = new Array<number>(n).fill(0);
@@ -101,7 +101,7 @@ export function stdDevs(
     const row = returns[i] as readonly number[];
     for (let j = 0; j < n; j += 1) {
       const diff = (row[j] as number) - (mean[j] as number);
-      sq[j] += diff * diff;
+      sq[j]! += diff * diff;
     }
   }
   return sq.map((s) => Math.sqrt(s / (t - ddof)) * Math.sqrt(factor));
@@ -123,7 +123,7 @@ export function sampleCovariance(
   const sum = new Array<number>(n).fill(0);
   for (let i = 0; i < t; i += 1) {
     const row = returns[i] as readonly number[];
-    for (let j = 0; j < n; j += 1) sum[j] += row[j] as number;
+    for (let j = 0; j < n; j += 1) sum[j]! += row[j] as number;
   }
   const mean = sum.map((s) => s / t);
   const cov: number[][] = Array.from({ length: n }, () => new Array<number>(n).fill(0));

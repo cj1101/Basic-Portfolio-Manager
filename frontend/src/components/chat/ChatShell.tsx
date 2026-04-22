@@ -17,7 +17,7 @@ import {
   useSendChatMessage,
 } from "@/lib/queries";
 import { usePortfolio } from "@/state/portfolioContext";
-import { useSettingsOptional } from "@/state/settingsContext";
+import { useSettingsOptional } from "@/state/settingsHooks";
 import { Tooltip } from "../ui/Tooltip";
 
 const SESSION_STORAGE_KEY = "pm.chat.sessionId";

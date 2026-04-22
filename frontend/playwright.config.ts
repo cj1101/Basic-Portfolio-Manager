@@ -29,7 +29,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: `pnpm run dev -- --host 127.0.0.1 --port ${PORT} --strictPort`,
+    // Avoid depending on `pnpm` availability in Playwright's nested child shell on CI.
+    command: `node ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port ${PORT} --strictPort`,
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -1,5 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import { SettingsContext } from "./settingsContextValue";
+import type { SettingsValue } from "./settingsContextValue";
 
 /**
  * Per-session UI settings (chat LLM model, verbose logging toggle).
@@ -14,19 +16,9 @@ import type { ReactNode } from "react";
  * isolated components in tests without rebuilding the entire shell.
  */
 
-export interface SettingsValue {
-  llmModel: string;
-  setLlmModel: (model: string) => void;
-  resetLlmModel: () => void;
-  verboseLogs: boolean;
-  setVerboseLogs: (enabled: boolean) => void;
-}
-
 export const DEFAULT_LLM_MODEL = "google/gemma-4-31b-it";
 const LLM_MODEL_KEY = "pm.settings.llmModel";
 const VERBOSE_LOGS_KEY = "pm.settings.verboseLogs";
-
-const SettingsContext = createContext<SettingsValue | null>(null);
 
 function readString(key: string, fallback: string): string {
   if (typeof window === "undefined") return fallback;
@@ -95,14 +87,3 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }
 
-export function useSettings(): SettingsValue {
-  const ctx = useContext(SettingsContext);
-  if (ctx === null) {
-    throw new Error("useSettings must be called inside a SettingsProvider.");
-  }
-  return ctx;
-}
-
-export function useSettingsOptional(): SettingsValue | null {
-  return useContext(SettingsContext);
-}
