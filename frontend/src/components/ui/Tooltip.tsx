@@ -5,6 +5,7 @@ export interface TooltipProps {
   label: string;
   placement?: "top" | "bottom";
   className?: string;
+  contentClassName?: string;
 }
 
 /**
@@ -16,6 +17,7 @@ export function Tooltip({
   label,
   placement = "top",
   className,
+  contentClassName,
   children,
 }: PropsWithChildren<TooltipProps>) {
   const id = useId();
@@ -38,8 +40,9 @@ export function Tooltip({
           id={id}
           role="tooltip"
           className={clsx(
-            "pointer-events-none absolute left-1/2 z-30 w-max max-w-xs -translate-x-1/2 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white shadow-lg",
+            "pointer-events-none absolute left-1/2 z-30 w-max max-w-sm -translate-x-1/2 rounded-md bg-slate-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg",
             placement === "top" ? "bottom-full mb-2" : "top-full mt-2",
+            contentClassName,
           )}
         >
           {label}

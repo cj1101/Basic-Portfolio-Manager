@@ -1,6 +1,8 @@
 import clsx from "clsx";
 import type { StockMetrics, Ticker } from "@/types/contracts";
 import { decimals, pct, signedPct, integer } from "@/lib/format";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { metricTooltip } from "@/lib/metricTooltips";
 
 export interface MetricsTableProps {
   stocks: StockMetrics[];
@@ -9,13 +11,13 @@ export interface MetricsTableProps {
 }
 
 const columns = [
-  { key: "ticker", label: "Ticker", align: "left" },
-  { key: "expectedReturn", label: "E(r)", align: "right" },
-  { key: "stdDev", label: "σ", align: "right" },
-  { key: "beta", label: "β", align: "right" },
-  { key: "alpha", label: "α", align: "right" },
-  { key: "firmSpecificVar", label: "Firm-specific var", align: "right" },
-  { key: "nObservations", label: "N obs", align: "right" },
+  { key: "ticker", label: "Ticker", align: "left", tooltip: undefined },
+  { key: "expectedReturn", label: "E(r)", align: "right", tooltip: metricTooltip("stockExpectedReturn") },
+  { key: "stdDev", label: "σ", align: "right", tooltip: metricTooltip("stockStdDev") },
+  { key: "beta", label: "β", align: "right", tooltip: metricTooltip("beta") },
+  { key: "alpha", label: "α", align: "right", tooltip: metricTooltip("alpha") },
+  { key: "firmSpecificVar", label: "Firm-specific var", align: "right", tooltip: metricTooltip("firmSpecificVar") },
+  { key: "nObservations", label: "N obs", align: "right", tooltip: metricTooltip("nObservations") },
 ] as const;
 
 export function MetricsTable({ stocks, weights, caption }: MetricsTableProps) {
@@ -37,12 +39,24 @@ export function MetricsTable({ stocks, weights, caption }: MetricsTableProps) {
                   scope="col"
                   className={clsx("px-4 py-2 font-medium", c.align === "right" && "text-right")}
                 >
-                  {c.label}
+                  {c.tooltip ? (
+                    <Tooltip label={c.tooltip}>
+                      <span className="cursor-help underline decoration-dotted underline-offset-2">
+                        {c.label}
+                      </span>
+                    </Tooltip>
+                  ) : (
+                    c.label
+                  )}
                 </th>
               ))}
               {showWeight ? (
                 <th scope="col" className="px-4 py-2 text-right font-medium">
-                  ORP weight
+                  <Tooltip label={metricTooltip("orpWeight")}>
+                    <span className="cursor-help underline decoration-dotted underline-offset-2">
+                      ORP weight
+                    </span>
+                  </Tooltip>
                 </th>
               ) : null}
             </tr>

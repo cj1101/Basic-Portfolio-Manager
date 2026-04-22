@@ -37,3 +37,23 @@
 [2026-04-22T15:43:21] [launcher] [2m…still running[0m
 [2026-04-22T15:43:51] [launcher] [2m…still running[0m
 [2026-04-22T15:44:21] [launcher] [2m…still running[0m
+[2026-04-22T15:44:51] [launcher] [2m…still running[0m
+[2026-04-22T15:45:21] [launcher] [2m…still running[0m
+[2026-04-22T15:45:51] [launcher] [2m…still running[0m
+[2026-04-22T15:46:21] [launcher] [2m…still running[0m
+[2026-04-22T15:46:52] [launcher] [2m…still running[0m
+[2026-04-22T15:47:22] [launcher] [2m…still running[0m
+[2026-04-22T15:47:52] [launcher] [2m…still running[0m
+[2026-04-22T15:48:22] [launcher] [2m…still running[0m
+[2026-04-22T15:48:52] [launcher] [2m…still running[0m
+[2026-04-22T15:49:22] [launcher] [2m…still running[0m
+[2026-04-22T15:49:53] [launcher] [2m…still running[0m
+[2026-04-22T15:50:23] [launcher] [2m…still running[0m
+[2026-04-22T15:50:53] [launcher] [2m…still running[0m
+[2026-04-22T15:51:23] [launcher] [2m…still running[0m
+[2026-04-22T15:51:53] [launcher] [2m…still running[0m
+[2026-04-22T15:52:14] [backend]  WARNING:  WatchFiles detected changes in '.venv\Lib\site-packages\_pytest\_version.py'. Reloading...
+[2026-04-22T15:52:14] [launcher] received signal 2
+[2026-04-22T15:52:14] [launcher] terminating backend…
+[2026-04-22T15:52:14] [launcher] terminating frontend…
+[2026-04-22T15:52:22] [launcher] frontend did not exit; killing.

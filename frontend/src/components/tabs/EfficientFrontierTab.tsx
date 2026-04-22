@@ -3,6 +3,8 @@ import { usePortfolio } from "@/state/portfolioContext";
 import { EfficientFrontierChart } from "../charts/EfficientFrontierChart";
 import { MetricsTable } from "../kpi/MetricsTable";
 import { decimals, pct } from "@/lib/format";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { metricTooltip } from "@/lib/metricTooltips";
 
 export function EfficientFrontierTab() {
   const { result } = usePortfolio();
@@ -35,17 +37,29 @@ export function EfficientFrontierTab() {
 
       <section className="grid gap-4 md:grid-cols-3">
         <article className="card p-5">
-          <span className="stat-label">ORP Expected Return</span>
+          <Tooltip label={metricTooltip("orpExpectedReturn", { value: orp.expectedReturn })}>
+            <span className="stat-label cursor-help underline decoration-dotted underline-offset-2">
+              ORP Expected Return
+            </span>
+          </Tooltip>
           <p className="stat-value text-brand-700">{pct(orp.expectedReturn, 2)}</p>
           <p className="text-xs text-slate-500">E(r_ORP) = Σ w_i · E(r_i)</p>
         </article>
         <article className="card p-5">
-          <span className="stat-label">ORP Volatility</span>
+          <Tooltip label={metricTooltip("orpVolatility", { value: orp.stdDev })}>
+            <span className="stat-label cursor-help underline decoration-dotted underline-offset-2">
+              ORP Volatility
+            </span>
+          </Tooltip>
           <p className="stat-value">{pct(orp.stdDev, 2)}</p>
           <p className="text-xs text-slate-500">σ_ORP = sqrt(wᵀ Σ w)</p>
         </article>
         <article className="card p-5 border-brand-200 bg-brand-50/40">
-          <span className="stat-label">ORP Sharpe</span>
+          <Tooltip label={metricTooltip("orpSharpe", { value: orp.sharpe })}>
+            <span className="stat-label cursor-help underline decoration-dotted underline-offset-2">
+              ORP Sharpe
+            </span>
+          </Tooltip>
           <p className="stat-value text-brand-700">
             {decimals(orp.sharpe, 3)}
             <TrendingUp className="ml-1 inline align-middle text-emerald-500" size={20} />

@@ -238,3 +238,235 @@
 [2026-04-22T15:43:27] [launcher] …still running
 [2026-04-22T15:43:58] [launcher] …still running
 [2026-04-22T15:44:28] [launcher] …still running
+[2026-04-22T15:44:50] [backend]  INFO:     127.0.0.1:58860 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T15:44:51] [backend]  INFO:     127.0.0.1:58857 - "GET /api/llm/models HTTP/1.1" 200 OK
+[2026-04-22T15:44:51] [backend]  INFO:     127.0.0.1:64764 - "GET /api/llm/models HTTP/1.1" 200 OK
+[2026-04-22T15:44:58] [launcher] …still running
+[2026-04-22T15:45:28] [launcher] …still running
+[2026-04-22T15:45:58] [launcher] …still running
+[2026-04-22T15:46:28] [launcher] …still running
+[2026-04-22T15:46:29] [backend]  INFO:     127.0.0.1:64975 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T15:46:30] [backend]  INFO:     127.0.0.1:63160 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T15:46:59] [launcher] …still running
+[2026-04-22T15:47:29] [launcher] …still running
+[2026-04-22T15:47:59] [launcher] …still running
+[2026-04-22T15:48:29] [launcher] …still running
+[2026-04-22T15:48:59] [launcher] …still running
+[2026-04-22T15:49:29] [launcher] …still running
+[2026-04-22T15:50:00] [launcher] …still running
+[2026-04-22T15:50:30] [launcher] …still running
+[2026-04-22T15:51:00] [launcher] …still running
+[2026-04-22T15:51:30] [launcher] …still running
+[2026-04-22T15:52:00] [launcher] …still running
+[2026-04-22T15:52:14] [backend]  alpha_vantage unavailable: alpha-vantage unavailable: Thank you for using Alpha Vantage! This is a premium endpoint. You may subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly unlock all premium endpoints
+[2026-04-22T15:52:30] [launcher] …still running
+[2026-04-22T15:53:00] [launcher] …still running
+[2026-04-22T15:53:31] [launcher] …still running
+[2026-04-22T15:54:01] [launcher] …still running
+[2026-04-22T15:54:31] [launcher] …still running
+[2026-04-22T15:55:01] [launcher] …still running
+[2026-04-22T15:55:31] [launcher] …still running
+[2026-04-22T15:55:46] [frontend] 15:55:46 [vite] hmr update /src/components/kpi/KpiCard.tsx, /src/index.css
+[2026-04-22T15:55:54] [frontend] 15:55:54 [vite] hmr update /src/components/kpi/MetricsTable.tsx, /src/index.css
+[2026-04-22T15:55:58] [frontend] 15:55:58 [vite] hmr update /src/components/ui/Tooltip.tsx, /src/index.css
+[2026-04-22T15:56:01] [launcher] …still running
+[2026-04-22T15:56:17] [frontend] 15:56:17 [vite] hmr update /src/components/tabs/OverviewTab.tsx, /src/index.css
+[2026-04-22T15:56:27] [frontend] 15:56:27 [vite] hmr update /src/components/tabs/EfficientFrontierTab.tsx, /src/index.css
+[2026-04-22T15:56:32] [launcher] …still running
+[2026-04-22T15:56:44] [frontend] 15:56:44 [vite] hmr update /src/components/tabs/AssetAllocationTab.tsx, /src/index.css
+[2026-04-22T15:57:02] [launcher] …still running
+[2026-04-22T15:57:32] [launcher] …still running
+[2026-04-22T15:58:02] [launcher] …still running
+[2026-04-22T15:58:32] [launcher] …still running
+[2026-04-22T15:59:02] [launcher] …still running
+[2026-04-22T15:59:33] [launcher] …still running
+[2026-04-22T16:00:03] [launcher] …still running
+[2026-04-22T16:00:33] [launcher] …still running
+[2026-04-22T16:01:03] [launcher] …still running
+[2026-04-22T16:01:33] [launcher] …still running
+[2026-04-22T16:02:03] [launcher] …still running
+[2026-04-22T16:02:34] [launcher] …still running
+[2026-04-22T16:03:04] [launcher] …still running
+[2026-04-22T16:03:34] [launcher] …still running
+[2026-04-22T16:04:04] [launcher] …still running
+[2026-04-22T16:04:34] [launcher] …still running
+[2026-04-22T16:05:04] [launcher] …still running
+[2026-04-22T16:05:35] [launcher] …still running
+[2026-04-22T16:06:05] [launcher] …still running
+[2026-04-22T16:06:35] [launcher] …still running
+[2026-04-22T16:07:05] [launcher] …still running
+[2026-04-22T16:07:35] [launcher] …still running
+[2026-04-22T16:08:05] [launcher] …still running
+[2026-04-22T16:08:36] [launcher] …still running
+[2026-04-22T16:09:06] [launcher] …still running
+[2026-04-22T16:09:36] [launcher] …still running
+[2026-04-22T16:10:06] [launcher] …still running
+[2026-04-22T16:10:36] [launcher] …still running
+[2026-04-22T16:11:06] [launcher] …still running
+[2026-04-22T16:11:36] [launcher] …still running
+[2026-04-22T16:12:07] [launcher] …still running
+[2026-04-22T16:12:37] [launcher] …still running
+[2026-04-22T16:13:07] [launcher] …still running
+[2026-04-22T16:13:37] [launcher] …still running
+[2026-04-22T16:14:07] [launcher] …still running
+[2026-04-22T16:14:37] [launcher] …still running
+[2026-04-22T16:15:08] [launcher] …still running
+[2026-04-22T16:15:38] [launcher] …still running
+[2026-04-22T16:16:08] [launcher] …still running
+[2026-04-22T16:16:38] [launcher] …still running
+[2026-04-22T16:17:08] [launcher] …still running
+[2026-04-22T16:17:38] [launcher] …still running
+[2026-04-22T16:18:08] [launcher] …still running
+[2026-04-22T16:18:39] [launcher] …still running
+[2026-04-22T16:19:09] [launcher] …still running
+[2026-04-22T16:19:39] [launcher] …still running
+[2026-04-22T16:20:09] [launcher] …still running
+[2026-04-22T16:20:39] [launcher] …still running
+[2026-04-22T16:21:09] [launcher] …still running
+[2026-04-22T16:21:39] [launcher] …still running
+[2026-04-22T16:22:09] [launcher] …still running
+[2026-04-22T16:22:40] [launcher] …still running
+[2026-04-22T16:23:10] [launcher] …still running
+[2026-04-22T16:23:40] [launcher] …still running
+[2026-04-22T16:24:10] [launcher] …still running
+[2026-04-22T16:24:40] [launcher] …still running
+[2026-04-22T16:25:10] [launcher] …still running
+[2026-04-22T16:25:40] [launcher] …still running
+[2026-04-22T16:26:11] [launcher] …still running
+[2026-04-22T16:26:41] [launcher] …still running
+[2026-04-22T16:27:11] [launcher] …still running
+[2026-04-22T16:27:41] [launcher] …still running
+[2026-04-22T16:28:11] [launcher] …still running
+[2026-04-22T16:28:41] [launcher] …still running
+[2026-04-22T16:29:11] [launcher] …still running
+[2026-04-22T16:29:42] [launcher] …still running
+[2026-04-22T16:30:12] [launcher] …still running
+[2026-04-22T16:30:42] [launcher] …still running
+[2026-04-22T16:31:12] [launcher] …still running
+[2026-04-22T16:31:42] [launcher] …still running
+[2026-04-22T16:32:12] [launcher] …still running
+[2026-04-22T16:32:42] [launcher] …still running
+[2026-04-22T16:33:13] [launcher] …still running
+[2026-04-22T16:33:43] [launcher] …still running
+[2026-04-22T16:34:13] [launcher] …still running
+[2026-04-22T16:34:43] [launcher] …still running
+[2026-04-22T16:35:13] [launcher] …still running
+[2026-04-22T16:35:43] [launcher] …still running
+[2026-04-22T16:36:14] [launcher] …still running
+[2026-04-22T16:36:44] [launcher] …still running
+[2026-04-22T16:37:14] [launcher] …still running
+[2026-04-22T16:37:44] [launcher] …still running
+[2026-04-22T16:38:14] [launcher] …still running
+[2026-04-22T16:38:44] [launcher] …still running
+[2026-04-22T16:39:15] [launcher] …still running
+[2026-04-22T16:39:45] [launcher] …still running
+[2026-04-22T16:40:15] [launcher] …still running
+[2026-04-22T16:40:45] [launcher] …still running
+[2026-04-22T16:41:15] [launcher] …still running
+[2026-04-22T16:41:45] [launcher] …still running
+[2026-04-22T16:42:16] [launcher] …still running
+[2026-04-22T16:42:46] [launcher] …still running
+[2026-04-22T16:43:16] [launcher] …still running
+[2026-04-22T16:43:46] [launcher] …still running
+[2026-04-22T16:43:47] [backend]  INFO:     127.0.0.1:65139 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T16:43:47] [backend]  INFO:     127.0.0.1:65143 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T16:43:47] [backend]  Future exception was never retrieved
+[2026-04-22T16:43:47] [backend]  future: <Future finished exception=UnknownTickerError('Unknown ticker: AAOL')>
+[2026-04-22T16:43:47] [backend]  Traceback (most recent call last):
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+[2026-04-22T16:43:47] [backend]      await app(scope, receive, sender)
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+[2026-04-22T16:43:47] [backend]      response = await f(request)
+[2026-04-22T16:43:47] [backend]                 ^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.venv\Lib\site-packages\fastapi\routing.py", line 674, in app
+[2026-04-22T16:43:47] [backend]      raw_response = await run_endpoint_function(
+[2026-04-22T16:43:47] [backend]                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]      ...<3 lines>...
+[2026-04-22T16:43:47] [backend]      )
+[2026-04-22T16:43:47] [backend]      ^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.venv\Lib\site-packages\fastapi\routing.py", line 328, in run_endpoint_function
+[2026-04-22T16:43:47] [backend]      return await dependant.call(**values)
+[2026-04-22T16:43:47] [backend]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\api\optimize.py", line 35, in post_optimize
+[2026-04-22T16:43:47] [backend]      svc_result = await optimize_service.run(body, data_service=service)
+[2026-04-22T16:43:47] [backend]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\services\optimize_service.py", line 118, in run
+[2026-04-22T16:43:47] [backend]      t: await task for t, task in hist_tasks.items()
+[2026-04-22T16:43:47] [backend]         ^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\service.py", line 148, in get_historical
+[2026-04-22T16:43:47] [backend]      return await self._cache.run_singleflight(cache_key, _load)
+[2026-04-22T16:43:47] [backend]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\cache.py", line 359, in run_singleflight
+[2026-04-22T16:43:47] [backend]      value = await factory()
+[2026-04-22T16:43:47] [backend]              ^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\service.py", line 144, in _load
+[2026-04-22T16:43:47] [backend]      return await self._fetch_historical(
+[2026-04-22T16:43:47] [backend]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]          ticker, frequency=frequency, lookback_years=lookback_years, window_end=window_end
+[2026-04-22T16:43:47] [backend]          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]      )
+[2026-04-22T16:43:47] [backend]      ^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\service.py", line 159, in _fetch_historical
+[2026-04-22T16:43:47] [backend]      daily_bars, source = await self._fetch_daily_bars_with_fallback(
+[2026-04-22T16:43:47] [backend]                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]          ticker, lookback_years=lookback_years, window_end=window_end, warnings=warnings
+[2026-04-22T16:43:47] [backend]          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]      )
+[2026-04-22T16:43:47] [backend]      ^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\service.py", line 226, in _fetch_daily_bars_with_fallback
+[2026-04-22T16:43:47] [backend]      raise UnknownTickerError(ticker) from None
+[2026-04-22T16:43:47] [backend]  app.errors.UnknownTickerError: Unknown ticker: AAOL
+[2026-04-22T16:43:47] [backend]  Future exception was never retrieved
+[2026-04-22T16:43:47] [backend]  future: <Future finished exception=UnknownTickerError('Unknown ticker: AOLL')>
+[2026-04-22T16:43:47] [backend]  Traceback (most recent call last):
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.venv\Lib\site-packages\starlette\_exception_handler.py", line 42, in wrapped_app
+[2026-04-22T16:43:47] [backend]      await app(scope, receive, sender)
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.venv\Lib\site-packages\fastapi\routing.py", line 120, in app
+[2026-04-22T16:43:47] [backend]      response = await f(request)
+[2026-04-22T16:43:47] [backend]                 ^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.venv\Lib\site-packages\fastapi\routing.py", line 674, in app
+[2026-04-22T16:43:47] [backend]      raw_response = await run_endpoint_function(
+[2026-04-22T16:43:47] [backend]                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]      ...<3 lines>...
+[2026-04-22T16:43:47] [backend]      )
+[2026-04-22T16:43:47] [backend]      ^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\.venv\Lib\site-packages\fastapi\routing.py", line 328, in run_endpoint_function
+[2026-04-22T16:43:47] [backend]      return await dependant.call(**values)
+[2026-04-22T16:43:47] [backend]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\api\optimize.py", line 35, in post_optimize
+[2026-04-22T16:43:47] [backend]      svc_result = await optimize_service.run(body, data_service=service)
+[2026-04-22T16:43:47] [backend]                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\services\optimize_service.py", line 118, in run
+[2026-04-22T16:43:47] [backend]      t: await task for t, task in hist_tasks.items()
+[2026-04-22T16:43:47] [backend]         ^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\service.py", line 148, in get_historical
+[2026-04-22T16:43:47] [backend]      return await self._cache.run_singleflight(cache_key, _load)
+[2026-04-22T16:43:47] [backend]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\cache.py", line 359, in run_singleflight
+[2026-04-22T16:43:47] [backend]      value = await factory()
+[2026-04-22T16:43:47] [backend]              ^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\service.py", line 144, in _load
+[2026-04-22T16:43:47] [backend]      return await self._fetch_historical(
+[2026-04-22T16:43:47] [backend]             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]          ticker, frequency=frequency, lookback_years=lookback_years, window_end=window_end
+[2026-04-22T16:43:47] [backend]          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]      )
+[2026-04-22T16:43:47] [backend]      ^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\service.py", line 159, in _fetch_historical
+[2026-04-22T16:43:47] [backend]      daily_bars, source = await self._fetch_daily_bars_with_fallback(
+[2026-04-22T16:43:47] [backend]                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]          ticker, lookback_years=lookback_years, window_end=window_end, warnings=warnings
+[2026-04-22T16:43:47] [backend]          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[2026-04-22T16:43:47] [backend]      )
+[2026-04-22T16:43:47] [backend]      ^
+[2026-04-22T16:43:47] [backend]    File "C:\Users\charl\CodingProjets\automatedBrokerageClassVersion\backend\app\data\service.py", line 226, in _fetch_daily_bars_with_fallback
+[2026-04-22T16:43:47] [backend]      raise UnknownTickerError(ticker) from None
+[2026-04-22T16:43:47] [backend]  app.errors.UnknownTickerError: Unknown ticker: AOLL
+[2026-04-22T16:43:47] [backend]  INFO:     127.0.0.1:65144 - "GET /api/chat/sessions/cfec8625-8df4-4d46-adfc-8a14f0eb7fbf HTTP/1.1" 200 OK
+[2026-04-22T16:43:47] [backend]  INFO:     127.0.0.1:65141 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T16:43:47] [backend]  INFO:     127.0.0.1:65138 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T16:43:50] [backend]  INFO:     127.0.0.1:59262 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T16:43:50] [backend]  INFO:     127.0.0.1:59266 - "GET /api/llm/default HTTP/1.1" 200 OK
+[2026-04-22T16:43:50] [backend]  INFO:     127.0.0.1:59261 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T16:43:50] [backend]  INFO:     127.0.0.1:59263 - "POST /api/optimize HTTP/1.1" 200 OK
+[2026-04-22T16:43:50] [backend]  INFO:     127.0.0.1:59267 - "GET /api/chat/sessions/cfec8625-8df4-4d46-adfc-8a14f0eb7fbf HTTP/1.1" 200 OK

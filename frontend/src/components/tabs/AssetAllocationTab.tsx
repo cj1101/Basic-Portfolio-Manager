@@ -5,6 +5,8 @@ import { CALChart } from "../charts/CALChart";
 import { WeightsBarChart } from "../charts/WeightsBarChart";
 import { KpiCard } from "../kpi/KpiCard";
 import { decimals, pct } from "@/lib/format";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { metricTooltip } from "@/lib/metricTooltips";
 
 export function AssetAllocationTab() {
   const { result, riskProfile } = usePortfolio();
@@ -19,7 +21,11 @@ export function AssetAllocationTab() {
         </div>
         <p className="mt-1 text-sm leading-relaxed text-slate-600">
           Once we know the ORP and the risk-free rate, choosing a complete portfolio reduces to a
-          single number: <strong>y*</strong>, the fraction of your wealth in the ORP. It is set by
+          single number:{" "}
+          <Tooltip label={metricTooltip("yStar", { value: complete.yStar })}>
+            <strong className="cursor-help underline decoration-dotted underline-offset-2">y*</strong>
+          </Tooltip>
+          , the fraction of your wealth in the ORP. It is set by
           maximizing the mean-variance utility{" "}
           <code className="font-mono text-xs">U = E(r_C) − ½ · A · σ_C²</code>.
         </p>
@@ -34,6 +40,12 @@ export function AssetAllocationTab() {
           label="Weight in ORP (y*)"
           value={pct(complete.yStar, 2)}
           sublabel={`Risk-aversion A = ${riskProfile.riskAversion}`}
+          labelTooltip={metricTooltip("yStar", {
+            value: complete.yStar,
+            riskFreeRate,
+            orpExpectedReturn: orp.expectedReturn,
+            orpStdDev: orp.stdDev,
+          })}
           icon={<Sliders size={16} />}
           tone={complete.leverageUsed ? "negative" : "brand"}
         />
@@ -41,16 +53,26 @@ export function AssetAllocationTab() {
           label="Weight in risk-free"
           value={pct(complete.weightRiskFree, 2)}
           sublabel={`r_f = ${pct(riskFreeRate, 2)}`}
+          labelTooltip={metricTooltip("weightRiskFree", { value: complete.weightRiskFree })}
         />
         <KpiCard
           label="Complete E(r)"
           value={pct(complete.expectedReturn, 2)}
           sublabel={`ORP excess · y* = ${decimals((orp.expectedReturn - riskFreeRate) * complete.yStar, 4)}`}
+          labelTooltip={metricTooltip("completeExpectedReturn", {
+            value: complete.expectedReturn,
+            riskFreeRate,
+            orpExpectedReturn: orp.expectedReturn,
+          })}
         />
         <KpiCard
           label="Complete σ"
           value={pct(complete.stdDev, 2)}
           sublabel={`|y*| · σ_ORP = ${pct(Math.abs(complete.yStar) * orp.stdDev, 2)}`}
+          labelTooltip={metricTooltip("completeStdDev", {
+            value: complete.stdDev,
+            orpStdDev: orp.stdDev,
+          })}
         />
       </section>
 
@@ -101,10 +123,18 @@ export function AssetAllocationTab() {
                   Position
                 </th>
                 <th scope="col" className="px-4 py-2 text-right font-medium">
-                  ORP weight
+                  <Tooltip label={metricTooltip("orpWeight")}>
+                    <span className="cursor-help underline decoration-dotted underline-offset-2">
+                      ORP weight
+                    </span>
+                  </Tooltip>
                 </th>
                 <th scope="col" className="px-4 py-2 text-right font-medium">
-                  Complete weight (y* · w_ORP)
+                  <Tooltip label={metricTooltip("yStar", { value: complete.yStar })}>
+                    <span className="cursor-help underline decoration-dotted underline-offset-2">
+                      Complete weight (y* · w_ORP)
+                    </span>
+                  </Tooltip>
                 </th>
               </tr>
             </thead>
@@ -122,7 +152,13 @@ export function AssetAllocationTab() {
                 );
               })}
               <tr className="bg-slate-50/60">
-                <td className="px-4 py-2.5 font-semibold text-slate-900">Risk-free (r_f)</td>
+                <td className="px-4 py-2.5 font-semibold text-slate-900">
+                  <Tooltip label={metricTooltip("riskFreeRate", { riskFreeRate })}>
+                    <span className="cursor-help underline decoration-dotted underline-offset-2">
+                      Risk-free (r_f)
+                    </span>
+                  </Tooltip>
+                </td>
                 <td className="px-4 py-2.5 text-right tabular-nums text-slate-400">—</td>
                 <td
                   className={clsx(
