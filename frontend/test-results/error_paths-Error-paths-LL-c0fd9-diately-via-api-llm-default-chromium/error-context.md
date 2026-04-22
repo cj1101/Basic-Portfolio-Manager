@@ -7,7 +7,7 @@
 # Test info
 
 - Name: error_paths.spec.ts >> Error paths >> LLM unavailable on mount is reflected immediately via /api/llm/default
-- Location: tests\e2e\error_paths.spec.ts:61:3
+- Location: tests\e2e\error_paths.spec.ts:65:3
 
 # Error details
 

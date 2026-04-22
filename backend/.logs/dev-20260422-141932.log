@@ -117,3 +117,21 @@
 [2026-04-22T14:49:11] [launcher] …still running
 [2026-04-22T14:49:41] [launcher] …still running
 [2026-04-22T14:50:11] [launcher] …still running
+[2026-04-22T14:50:40] [frontend] 14:50:40 [vite] hmr update /src/components/Settings.tsx, /src/index.css
+[2026-04-22T14:50:40] [frontend] 14:50:40 [vite] hmr update /src/components/chat/ChatShell.tsx, /src/index.css
+[2026-04-22T14:50:40] [frontend] 14:50:40 [vite] hmr update /src/state/settingsContext.tsx, /src/index.css
+[2026-04-22T14:50:42] [launcher] …still running
+[2026-04-22T14:51:12] [launcher] …still running
+[2026-04-22T14:51:42] [launcher] …still running
+[2026-04-22T14:52:12] [launcher] …still running
+[2026-04-22T14:52:42] [launcher] …still running
+[2026-04-22T14:53:12] [launcher] …still running
+[2026-04-22T14:53:43] [launcher] …still running
+[2026-04-22T14:54:13] [launcher] …still running
+[2026-04-22T14:54:43] [launcher] …still running
+[2026-04-22T14:55:13] [launcher] …still running
+[2026-04-22T14:55:43] [launcher] …still running
+[2026-04-22T14:56:13] [launcher] …still running
+[2026-04-22T14:56:43] [launcher] …still running
+[2026-04-22T14:57:14] [launcher] …still running
+[2026-04-22T14:57:44] [launcher] …still running

@@ -8,7 +8,7 @@
  */
 
 import { InsufficientHistoryError, InvalidReturnWindowError } from "./errors.js";
-import { ReturnFrequency } from "./types.js";
+import type { ReturnFrequency } from "./types.js";
 
 export const ANNUALIZATION_FACTORS: Readonly<Record<ReturnFrequency, number>> = Object.freeze({
   daily: 252,
@@ -17,13 +17,7 @@ export const ANNUALIZATION_FACTORS: Readonly<Record<ReturnFrequency, number>> = 
 });
 
 export function annualizationFactor(frequency: ReturnFrequency): number {
-  const factor = ANNUALIZATION_FACTORS[frequency];
-  if (factor === undefined) {
-    throw new InvalidReturnWindowError(`Unsupported return frequency: ${String(frequency)}`, {
-      frequency: String(frequency),
-    });
-  }
-  return factor;
+  return ANNUALIZATION_FACTORS[frequency];
 }
 
 export function annualizeMean(meanPerPeriod: number, frequency: ReturnFrequency): number {

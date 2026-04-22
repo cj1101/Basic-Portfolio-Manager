@@ -56,8 +56,12 @@ test.describe("Happy path", () => {
     const gear = page.getByRole("button", { name: /settings/i }).first();
     await gear.click();
 
-    // The Settings panel should show both mocked models.
-    await expect(page.getByText(/google\/gemma-4-31b-it/i)).toBeVisible();
-    await expect(page.getByText(/anthropic\/claude-3\.5-sonnet/i)).toBeVisible();
+    // The Settings quick-picks should include both mocked model buttons.
+    await expect(
+      page.getByRole("button", { name: /google\/gemma-4-31b-it\s+gemma 4 31b it/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /anthropic\/claude-3\.5-sonnet\s+claude 3\.5 sonnet/i }),
+    ).toBeVisible();
   });
 });

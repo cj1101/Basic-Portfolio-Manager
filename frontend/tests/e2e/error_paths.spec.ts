@@ -42,7 +42,11 @@ test.describe("Error paths", () => {
     await page.getByRole("button", { name: /ask the portfolio manager/i }).click();
 
     // Force the mode to LLM so the send request trips the 503.
-    await page.getByRole("radio", { name: /^llm$/i }).click();
+    // The radio input is visually hidden (`sr-only`), so click the label chip.
+    await page
+      .getByRole("radiogroup", { name: /answer mode/i })
+      .getByText(/^llm$/i)
+      .click();
 
     const input = page.getByRole("textbox", {
       name: /ask a question about your portfolio/i,
