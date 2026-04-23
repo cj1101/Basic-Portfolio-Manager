@@ -36,13 +36,6 @@ from .capm import (
     capm_total_std_dev,
     capm_total_variance,
 )
-from .fama_french_3 import (
-    annualize_alpha_monthly,
-    capm_expected_return_annualized,
-    expected_return_from_monthly_sample_means,
-    fama_french_capm_regression_mkt,
-    fama_french_three_regression,
-)
 from .errors import (
     ErrorCode,
     InsufficientHistoryError,
@@ -53,14 +46,18 @@ from .errors import (
     OptimizerNonPSDCovarianceError,
     QuantError,
 )
-from .holding_period_monthly import mean_monthly_arithmetic_geometric, simple_monthly_returns_from_close_series
-from .portfolio_risk import (
-    portfolio_beta,
-    sim_portfolio_variance_decomposition,
-    total_variance_from_covariance,
+from .fama_french_3 import (
+    annualize_alpha_monthly,
+    capm_expected_return_annualized,
+    expected_return_from_monthly_sample_means,
+    fama_french_capm_regression_mkt,
+    fama_french_three_regression,
 )
-from .treynor import treynor_ratio
 from .frontier import cal_points, efficient_frontier_points
+from .holding_period_monthly import (
+    mean_monthly_arithmetic_geometric,
+    simple_monthly_returns_from_close_series,
+)
 from .linalg import (
     PROJECTION_FLOOR,
     PSD_TOL,
@@ -74,6 +71,11 @@ from .linalg import (
 )
 from .markowitz import optimize_markowitz
 from .minvar import minimum_variance_portfolio
+from .portfolio_risk import (
+    portfolio_beta,
+    sim_portfolio_variance_decomposition,
+    total_variance_from_covariance,
+)
 from .returns import (
     ANNUALIZATION_FACTORS,
     annualization_factor,
@@ -86,6 +88,7 @@ from .returns import (
 )
 from .sharpe import sharpe_ratio
 from .sim import SingleIndexFit, single_index_metrics
+from .treynor import treynor_ratio
 from .types import (
     ORP,
     CALPoint,
@@ -135,15 +138,15 @@ __all__ = [
     "annualize_mean",
     "annualize_std",
     "annualize_variance",
-    "capm_expected_return_annualized",
     "build_covariance",
     "cal_points",
-    "covariance_to_correlation",
+    "capm_expected_return_annualized",
     "capm_required_return",
     "capm_systematic_variance",
     "capm_total_expected_return",
     "capm_total_std_dev",
     "capm_total_variance",
+    "covariance_to_correlation",
     "efficient_frontier_points",
     "ensure_psd_covariance",
     "expected_return_from_monthly_sample_means",
@@ -159,8 +162,8 @@ __all__ = [
     "portfolio_beta",
     "sample_covariance",
     "sharpe_ratio",
-    "simple_monthly_returns_from_close_series",
     "sim_portfolio_variance_decomposition",
+    "simple_monthly_returns_from_close_series",
     "single_index_metrics",
     "std_devs",
     "total_variance_from_covariance",

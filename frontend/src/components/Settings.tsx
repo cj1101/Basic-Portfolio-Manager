@@ -70,8 +70,10 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
     const response = await updateApiKey.mutateAsync({
       keyName: selectedApiKey,
       newValue: apiKeyValue,
-      confirmOverwrite: options?.confirmOverwrite,
-      confirmCreate: options?.confirmCreate,
+      ...(options?.confirmOverwrite !== undefined
+        ? { confirmOverwrite: options.confirmOverwrite }
+        : {}),
+      ...(options?.confirmCreate !== undefined ? { confirmCreate: options.confirmCreate } : {}),
     });
     setApiKeyStatus(response.message);
     if (response.requiresConfirmation && response.confirmationType) {

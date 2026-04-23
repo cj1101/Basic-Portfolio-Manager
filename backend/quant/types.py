@@ -86,9 +86,7 @@ class CorrelationMatrix(_WireModel):
 
     @field_validator("matrix")
     @classmethod
-    def _square_and_matching_correlation(
-        cls, v: list[list[float]], info: Any
-    ) -> list[list[float]]:
+    def _square_and_matching_correlation(cls, v: list[list[float]], info: Any) -> list[list[float]]:
         tickers = info.data.get("tickers")
         if tickers is None:
             return v

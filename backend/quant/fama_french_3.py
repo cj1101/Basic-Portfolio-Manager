@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import numpy as np
-from numpy.typing import NDArray
 from numpy.linalg import lstsq
+from numpy.typing import NDArray
 
 from .errors import InsufficientHistoryError, InvalidReturnWindowError
 
@@ -24,7 +24,9 @@ def fama_french_three_regression(
     if not (n == x1.shape[0] == x2.shape[0] == x3.shape[0]):
         raise InvalidReturnWindowError("FF3: misaligned input lengths")
     if n < 4:
-        raise InsufficientHistoryError("need at least 4 months for 3-factor OLS", {"n": n, "required": 4})
+        raise InsufficientHistoryError(
+            "need at least 4 months for 3-factor OLS", {"n": n, "required": 4}
+        )
     if not (
         np.all(np.isfinite(y))
         and np.all(np.isfinite(x1))

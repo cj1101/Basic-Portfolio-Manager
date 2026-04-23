@@ -84,6 +84,10 @@ function describe(error: ApiError): { title: string; body: string } {
       title: "Invalid valuation inputs",
       body: error.message || "Discount rate must exceed growth in DDM / terminal models.",
     },
+    INVALID_SETTINGS: {
+      title: "Invalid settings",
+      body: error.message || "Check your configuration and try again.",
+    },
     INTERNAL: {
       title: "Something went wrong on our side",
       body: error.message || "An unexpected error occurred.",

@@ -107,12 +107,8 @@ def skip_ebit_based_fcff(
     if any(n in blob for n in _INDUSTRY_NEEDLES):
         return True
     rev = _first_float(income_latest, "totalRevenue", "revenue")
-    cl = _first_float(
-        balance_latest, "totalCurrentLiabilities", "currentLiabilities"
-    )
-    if rev is not None and rev > 0 and cl is not None and cl / rev > 4.5:
-        return True
-    return False
+    cl = _first_float(balance_latest, "totalCurrentLiabilities", "currentLiabilities")
+    return rev is not None and rev > 0 and cl is not None and cl / rev > 4.5
 
 
 __all__ = ["skip_ebit_based_fcff"]
