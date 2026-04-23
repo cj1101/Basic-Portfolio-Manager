@@ -91,9 +91,7 @@ class ValuationService:
             t = str(raw).upper().strip()
             tw: list[str] = []
             try:
-                inc, bal, cf, ov, prov = await data_service.get_fundamentals_bundle_for_valuation(
-                    t
-                )
+                inc, bal, cf, ov, prov = await data_service.get_fundamentals_bundle_for_valuation(t)
             except ProviderUnavailableError:
                 raise
             sources_seen.add(prov)
