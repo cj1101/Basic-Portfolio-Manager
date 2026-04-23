@@ -14,7 +14,7 @@ pytestmark = pytest.mark.asyncio
 
 def _minimal_fundamentals(*, ebit: str = "100000", revenue: str = "400000") -> AsyncMock:
     ds = AsyncMock()
-    ds.get_income_statement_json.return_value = {
+    inc = {
         "annualReports": [
             {
                 "ebit": ebit,
@@ -32,7 +32,7 @@ def _minimal_fundamentals(*, ebit: str = "100000", revenue: str = "400000") -> A
             },
         ]
     }
-    ds.get_balance_sheet_json.return_value = {
+    bal = {
         "annualReports": [
             {
                 "totalCurrentAssets": "150000",
@@ -48,7 +48,7 @@ def _minimal_fundamentals(*, ebit: str = "100000", revenue: str = "400000") -> A
             },
         ]
     }
-    ds.get_cash_flow_json.return_value = {
+    cf = {
         "annualReports": [
             {
                 "capitalExpenditures": "-12000",
@@ -56,7 +56,7 @@ def _minimal_fundamentals(*, ebit: str = "100000", revenue: str = "400000") -> A
             }
         ]
     }
-    ds.get_overview_json.return_value = {
+    ov = {
         "Symbol": "FAKE",
         "Sector": "TECHNOLOGY",
         "Industry": "SEMICONDUCTORS",
@@ -65,12 +65,14 @@ def _minimal_fundamentals(*, ebit: str = "100000", revenue: str = "400000") -> A
         "DividendPerShare": "0.5",
         "DividendYield": "0.002",
     }
+    ds.get_fundamentals_bundle_for_valuation.return_value = (inc, bal, cf, ov, "yahoo")
     return ds
 
 
 async def test_bank_ticker_omits_ebit_fcff() -> None:
     ds = _minimal_fundamentals()
-    ds.get_overview_json.return_value = {
+    inc, bal, cf, _prev_ov, prov = ds.get_fundamentals_bundle_for_valuation.return_value
+    ov_jpm = {
         "Symbol": "JPM",
         "Sector": "",
         "Industry": "",
@@ -78,6 +80,7 @@ async def test_bank_ticker_omits_ebit_fcff() -> None:
         "SharesOutstanding": "3000000",
         "DividendPerShare": "4",
     }
+    ds.get_fundamentals_bundle_for_valuation.return_value = (inc, bal, cf, ov_jpm, prov)
     req = ValuationRequest(
         tickers=["JPM"],
         wacc=0.09,

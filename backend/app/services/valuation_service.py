@@ -1,4 +1,4 @@
-"""``POST /api/valuation`` — FCFF, FCFE, DDM from Alpha Vantage fundamentals."""
+"""``POST /api/valuation`` — FCFF, FCFE, DDM from Yahoo (yfinance) or Alpha Vantage fundamentals."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def _num(d: dict, *keys: str) -> float | None:
 
 
 def _interest_bearing_debt(b: dict) -> float | None:
-    """Best-effort total debt from Alpha Vantage balance-sheet annual report keys."""
+    """Best-effort total debt from balance-sheet annual report keys."""
     td = _num(b, "totalDebt")
     if td is not None:
         return td
@@ -84,19 +84,19 @@ class ValuationService:
     ) -> tuple[ValuationResult, str]:
         rows: list[TickerValuationBlock] = []
         sw: list[str] = []
-        source = "alpha-vantage"
+        sources_seen: set[str] = set()
         as_of = datetime.now(UTC)
 
         for raw in request.tickers:
             t = str(raw).upper().strip()
             tw: list[str] = []
             try:
-                inc = await data_service.get_income_statement_json(t)
-                bal = await data_service.get_balance_sheet_json(t)
-                cf = await data_service.get_cash_flow_json(t)
-                ov = await data_service.get_overview_json(t)
+                inc, bal, cf, ov, prov = await data_service.get_fundamentals_bundle_for_valuation(
+                    t
+                )
             except ProviderUnavailableError:
                 raise
+            sources_seen.add(prov)
 
             ann_i = list(inc.get("annualReports") or [])
             ann_b = list(bal.get("annualReports") or [])
@@ -274,6 +274,11 @@ class ValuationService:
                     warnings=tw,
                 )
             )
+
+        if len(sources_seen) == 1:
+            source = next(iter(sources_seen))
+        else:
+            source = "mixed"
 
         return (
             ValuationResult(

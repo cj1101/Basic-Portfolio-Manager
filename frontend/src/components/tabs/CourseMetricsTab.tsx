@@ -96,7 +96,11 @@ export function CourseMetricsTab() {
         } catch (e) {
           if (!isValuationThrottleError(e) || attempt >= VALUATION_MAX_ATTEMPTS) {
             setValuation(null);
-            setErr(e instanceof ApiError ? e.message : "Valuation failed (Alpha Vantage required)");
+            setErr(
+              e instanceof ApiError
+                ? e.message
+                : "Valuation failed (fundamentals unavailable from Yahoo or Alpha Vantage)",
+            );
             return;
           }
           // Fixed pacing: server may send Retry-After up to 60s for 429; long silent waits looked "stuck".

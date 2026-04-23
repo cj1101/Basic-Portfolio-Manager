@@ -24,7 +24,7 @@ from app.data.cache import MarketCache
 from app.data.calendar import last_trading_day_on_or_before
 from app.data.clients.alpha_vantage import AlphaVantageClient
 from app.data.clients.fred import FredClient
-from app.data.clients.yahoo import YahooClient
+from app.data.clients.yahoo import YahooClient, valuation_fundamentals_bundle_complete
 from app.data.mock import (
     PROVIDER_NAME as MOCK_PROVIDER,
 )
@@ -344,70 +344,59 @@ class DataService:
         return RiskFreeRateResult(FRED_FALLBACK_RATE, fallback_as_of, "FALLBACK", warnings)
 
     # ------------------------------------------------------------------
-    # Fundamentals (Alpha Vantage only — no Yahoo substitute)
+    # Fundamentals for valuation (Yahoo first, Alpha Vantage fallback)
     # ------------------------------------------------------------------
 
-    async def get_income_statement_json(self, ticker: str) -> dict[str, Any]:
+    async def get_fundamentals_bundle_for_valuation(
+        self, ticker: str
+    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], str]:
+        """Return income, balance, cashflow, overview (Alpha-Vantage-shaped) + provider id."""
+
         ticker = _normalize_ticker(ticker)
-        if self._av is None:
-            raise ProviderUnavailableError("alpha-vantage", "fundamentals require ALPHA_VANTAGE_API_KEY")
-        key = f"fundamentals:{ticker}:income"
-        cached = await self._cache.get_fundamentals(ticker, "income")
-        if cached is not None:
-            return cached
+        kinds = ("income", "balance", "cashflow", "overview")
+        entries = [await self._cache.get_fundamentals_with_source(ticker, k) for k in kinds]
+        if all(e is not None for e in entries):
+            inc, src0 = entries[0]  # type: ignore[misc]
+            bal, src1 = entries[1]  # type: ignore[misc]
+            cf, src2 = entries[2]  # type: ignore[misc]
+            ov, src3 = entries[3]  # type: ignore[misc]
+            srcs = {src0, src1, src2, src3}
+            if (
+                len(srcs) == 1
+                and valuation_fundamentals_bundle_complete(inc, bal, cf, ov)
+            ):
+                return inc, bal, cf, ov, src0
 
-        async def _load() -> dict[str, Any]:
-            d = await self._av.get_income_statement(ticker)
-            await self._cache.put_fundamentals(ticker, "income", d, "alpha-vantage")
-            return d
+        key = f"fundamentals_bundle_valuation:{ticker}"
 
-        return await self._cache.run_singleflight(key, _load)
+        async def _load() -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any], str]:
+            yahoo_exc: UnknownTickerError | ProviderUnavailableError | None = None
+            try:
+                inc, bal, cf, ov = await self._yahoo.get_fundamentals_bundle_for_valuation(
+                    ticker
+                )
+            except (UnknownTickerError, ProviderUnavailableError) as exc:
+                yahoo_exc = exc
+            else:
+                await self._cache.put_fundamentals(ticker, "income", inc, "yahoo")
+                await self._cache.put_fundamentals(ticker, "balance", bal, "yahoo")
+                await self._cache.put_fundamentals(ticker, "cashflow", cf, "yahoo")
+                await self._cache.put_fundamentals(ticker, "overview", ov, "yahoo")
+                return inc, bal, cf, ov, "yahoo"
 
-    async def get_balance_sheet_json(self, ticker: str) -> dict[str, Any]:
-        ticker = _normalize_ticker(ticker)
-        if self._av is None:
-            raise ProviderUnavailableError("alpha-vantage", "fundamentals require ALPHA_VANTAGE_API_KEY")
-        key = f"fundamentals:{ticker}:balance"
-        cached = await self._cache.get_fundamentals(ticker, "balance")
-        if cached is not None:
-            return cached
+            if self._av is None:
+                assert yahoo_exc is not None
+                raise yahoo_exc
 
-        async def _load() -> dict[str, Any]:
-            d = await self._av.get_balance_sheet(ticker)
-            await self._cache.put_fundamentals(ticker, "balance", d, "alpha-vantage")
-            return d
-
-        return await self._cache.run_singleflight(key, _load)
-
-    async def get_cash_flow_json(self, ticker: str) -> dict[str, Any]:
-        ticker = _normalize_ticker(ticker)
-        if self._av is None:
-            raise ProviderUnavailableError("alpha-vantage", "fundamentals require ALPHA_VANTAGE_API_KEY")
-        key = f"fundamentals:{ticker}:cashflow"
-        cached = await self._cache.get_fundamentals(ticker, "cashflow")
-        if cached is not None:
-            return cached
-
-        async def _load() -> dict[str, Any]:
-            d = await self._av.get_cash_flow(ticker)
-            await self._cache.put_fundamentals(ticker, "cashflow", d, "alpha-vantage")
-            return d
-
-        return await self._cache.run_singleflight(key, _load)
-
-    async def get_overview_json(self, ticker: str) -> dict[str, Any]:
-        ticker = _normalize_ticker(ticker)
-        if self._av is None:
-            raise ProviderUnavailableError("alpha-vantage", "fundamentals require ALPHA_VANTAGE_API_KEY")
-        key = f"fundamentals:{ticker}:overview"
-        cached = await self._cache.get_fundamentals(ticker, "overview")
-        if cached is not None:
-            return cached
-
-        async def _load() -> dict[str, Any]:
-            d = await self._av.get_overview(ticker)
-            await self._cache.put_fundamentals(ticker, "overview", d, "alpha-vantage")
-            return d
+            inc = await self._av.get_income_statement(ticker)
+            bal = await self._av.get_balance_sheet(ticker)
+            cf = await self._av.get_cash_flow(ticker)
+            ov = await self._av.get_overview(ticker)
+            await self._cache.put_fundamentals(ticker, "income", inc, "alpha-vantage")
+            await self._cache.put_fundamentals(ticker, "balance", bal, "alpha-vantage")
+            await self._cache.put_fundamentals(ticker, "cashflow", cf, "alpha-vantage")
+            await self._cache.put_fundamentals(ticker, "overview", ov, "alpha-vantage")
+            return inc, bal, cf, ov, "alpha-vantage"
 
         return await self._cache.run_singleflight(key, _load)
 

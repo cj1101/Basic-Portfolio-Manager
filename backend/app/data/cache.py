@@ -268,11 +268,13 @@ class MarketCache:
             fetched_at=row["fetched_at"],
         )
 
-    # ----- fundamentals (Alpha Vantage) ----------------------------------
+    # ----- fundamentals (Yahoo / Alpha Vantage) ----------------------------
 
     FUNDAMENTALS_TTL_SECONDS: int = 7 * 24 * 3600
 
-    async def get_fundamentals(self, ticker: str, kind: str) -> dict[str, Any] | None:
+    async def get_fundamentals_with_source(
+        self, ticker: str, kind: str
+    ) -> tuple[dict[str, Any], str] | None:
         conn = await self._ensure()
         async with conn.execute(
             "SELECT payload, fetched_at, source FROM fundamentals WHERE ticker = ? AND kind = ?",
@@ -283,7 +285,11 @@ class MarketCache:
             return None
         if _expired(row["fetched_at"], self.FUNDAMENTALS_TTL_SECONDS):
             return None
-        return json.loads(row["payload"])
+        return json.loads(row["payload"]), str(row["source"])
+
+    async def get_fundamentals(self, ticker: str, kind: str) -> dict[str, Any] | None:
+        got = await self.get_fundamentals_with_source(ticker, kind)
+        return got[0] if got is not None else None
 
     async def put_fundamentals(self, ticker: str, kind: str, payload: dict, source: str) -> None:
         conn = await self._ensure()
