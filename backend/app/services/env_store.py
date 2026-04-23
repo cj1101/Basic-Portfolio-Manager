@@ -115,4 +115,3 @@ class EnvStore:
 def get_backend_env_store() -> EnvStore:
     backend_root = Path(__file__).resolve().parents[2]
     return EnvStore(backend_root / ".env")
-

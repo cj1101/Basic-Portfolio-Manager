@@ -20,8 +20,10 @@ export const PROJECTION_FLOOR = 1e-12;
 
 type Row = number[];
 type Matrix = Row[];
+/** Read-only 2D numeric grid; use for API inputs so callers are not forced to copy. */
+type ReadonlyMatrix = readonly (readonly number[])[];
 
-function dim(m: Matrix): { rows: number; cols: number } {
+function dim(m: ReadonlyMatrix): { rows: number; cols: number } {
   const rows = m.length;
   const cols = rows === 0 ? 0 : (m[0]?.length ?? 0);
   for (const row of m) {
@@ -347,7 +349,7 @@ export function symmetricEigenDecomposition(m: Matrix, maxSweeps = 200): {
   return { values, vectors: v };
 }
 
-function safeDim(m: Matrix): { rows: number; cols: number } | null {
+function safeDim(m: ReadonlyMatrix): { rows: number; cols: number } | null {
   try {
     return dim(m);
   } catch {

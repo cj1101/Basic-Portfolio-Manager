@@ -135,9 +135,10 @@ class ValuationService:
             t_rate = 0.21
             if ebt and ebt > 0 and tax_e is not None:
                 t_rate = min(max(tax_e / ebt, 0.0), 0.5)
-            depr = _num(
-                c0, "depreciationDepletionAndAmortization", "depreciationAndAmortization"
-            ) or 0.0
+            depr = (
+                _num(c0, "depreciationDepletionAndAmortization", "depreciationAndAmortization")
+                or 0.0
+            )
             cap_raw = _num(c0, "capitalExpenditures", "capitalExpenditure")
             capex = abs(float(cap_raw)) if cap_raw is not None else 0.0
             ca0 = _num(b0, "totalCurrentAssets", "currentAssets")
@@ -240,7 +241,9 @@ class ValuationService:
                     g2 = request.ddm_two_stage.g2
                     n_ = int(request.ddm_two_stage.n_periods)
                     if k_e <= g1 or k_e <= g2:
-                        raise InvalidValuationError("DDM two-stage: k must exceed g1 and g2", {"k": k_e})
+                        raise InvalidValuationError(
+                            "DDM two-stage: k must exceed g1 and g2", {"k": k_e}
+                        )
                     ddm2 = ddm_two_stage(float(dps), g1, g2, n_, k_e)
                 except (ValueError, InvalidValuationError) as exc:
                     tw.append(f"Two-stage DDM: {exc}")
@@ -254,7 +257,9 @@ class ValuationService:
                     ticker=t,
                     fcff=fcff,
                     fcfe=fcfe,
-                    fcff_value_per_share=per_share(fcff_equity_v, sh) if fcff_equity_v is not None else None,
+                    fcff_value_per_share=per_share(fcff_equity_v, sh)
+                    if fcff_equity_v is not None
+                    else None,
                     fcfe_value_per_share=per_share(fcfe_v, sh) if fcfe_v is not None else None,
                     ddm_gordon=ddm_g,
                     ddm_two_stage=ddm2,

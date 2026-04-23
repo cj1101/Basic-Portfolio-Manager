@@ -14,7 +14,7 @@ function blend(a: [number, number, number], b: [number, number, number], t: numb
 }
 
 /** Map ρ in [-1, 1] to a green (-1) → white (0) → red (+1) background. */
-export function correlationCellBackground(rho: number): string {
+function correlationCellBackground(rho: number): string {
   if (rho <= 0) {
     const t = 1 + rho;
     return blend(GREEN, WHITE, t);

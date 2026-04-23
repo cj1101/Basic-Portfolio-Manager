@@ -133,11 +133,12 @@ def _ff3_per_ticker(
             continue
         a = np.array(yx, dtype=np.float64)
         a3, b1, b2, b3, n3 = fama_french_three_regression(
-            a, np.array(mkt, dtype=np.float64), np.array(smb, dtype=np.float64), np.array(hml, dtype=np.float64)
+            a,
+            np.array(mkt, dtype=np.float64),
+            np.array(smb, dtype=np.float64),
+            np.array(hml, dtype=np.float64),
         )
-        _ac, bc, _n2 = fama_french_capm_regression_mkt(
-            a, np.array(mktc, dtype=np.float64)
-        )
+        _ac, bc, _n2 = fama_french_capm_regression_mkt(a, np.array(mktc, dtype=np.float64))
         m_rf = float(np.mean(np.array(rf, dtype=np.float64)))
         mm = float(np.mean(np.array(mkt, dtype=np.float64)))
         ms = float(np.mean(np.array(smb, dtype=np.float64)))
@@ -185,7 +186,9 @@ class AnalyticsService:
             )
         # Longer window for 3/5/10y *monthly* mean returns (first ticker; prices only).
         hold_hist = await data_service.get_historical(
-            tickers[0], frequency=ReturnFrequency.DAILY, lookback_years=max(12, request.lookback_years)
+            tickers[0],
+            frequency=ReturnFrequency.DAILY,
+            lookback_years=max(12, request.lookback_years),
         )
 
         warnings: list[str] = list(rfr.warnings)
@@ -242,9 +245,7 @@ class AnalyticsService:
         t_orp = treynor_ratio(e_orp, float(rfr.rate), beta_p)
 
         total_var = total_variance_from_covariance(cov, w_orp)
-        sysv, unsyv, sim_sum = sim_portfolio_variance_decomposition(
-            w_orp, b_arr, m_var, f_arr
-        )
+        sysv, unsyv, sim_sum = sim_portfolio_variance_decomposition(w_orp, b_arr, m_var, f_arr)
         sim_mis = abs(total_var - sim_sum)
         orp_m = ORPPerformanceMetrics(
             treynor=t_orp,
