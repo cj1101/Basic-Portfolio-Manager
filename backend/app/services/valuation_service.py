@@ -252,17 +252,22 @@ class ValuationService:
             elif dps is not None and g_div is None and request.ddm_two_stage is None:
                 tw.append("DDM skipped (request did not include ddmGordonG or ddmTwoStage)")
 
+            if fcff_equity_v is not None and sh is not None:
+                fcff_value_per_share: float | None = per_share(fcff_equity_v, sh)
+            else:
+                fcff_value_per_share = None
+            if fcfe_v is not None and sh is not None:
+                fcfe_value_per_share: float | None = per_share(fcfe_v, sh)
+            else:
+                fcfe_value_per_share = None
+
             rows.append(
                 TickerValuationBlock(
                     ticker=t,
                     fcff=fcff,
                     fcfe=fcfe,
-                    fcff_value_per_share=per_share(fcff_equity_v, sh)
-                    if fcff_equity_v is not None and sh is not None
-                    else None,
-                    fcfe_value_per_share=per_share(fcfe_v, sh)
-                    if fcfe_v is not None and sh is not None
-                    else None,
+                    fcff_value_per_share=fcff_value_per_share,
+                    fcfe_value_per_share=fcfe_value_per_share,
                     ddm_gordon=ddm_g,
                     ddm_two_stage=ddm2,
                     cost_of_equity=float(k_e),
