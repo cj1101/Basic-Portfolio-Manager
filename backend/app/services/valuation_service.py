@@ -258,9 +258,11 @@ class ValuationService:
                     fcff=fcff,
                     fcfe=fcfe,
                     fcff_value_per_share=per_share(fcff_equity_v, sh)
-                    if fcff_equity_v is not None
+                    if fcff_equity_v is not None and sh is not None
                     else None,
-                    fcfe_value_per_share=per_share(fcfe_v, sh) if fcfe_v is not None else None,
+                    fcfe_value_per_share=per_share(fcfe_v, sh)
+                    if fcfe_v is not None and sh is not None
+                    else None,
                     ddm_gordon=ddm_g,
                     ddm_two_stage=ddm2,
                     cost_of_equity=float(k_e),
