@@ -951,7 +951,7 @@ Treynor, portfolio Jensen (SIM) alpha, **SIM variance decomposition** for the **
 
 ### 5.14 `POST /api/valuation` — body `ValuationRequest` → `ValuationResult`
 
-FCFF, FCFE, DDM (Gordon and optional two-stage) per ticker; pulls fundamentals via **Alpha Vantage** (`INCOME_STATEMENT`, `BALANCE_SHEET`, `CASH_FLOW`, and `OVERVIEW` as needed). `INVALID_VALUATION` is returned for invalid DDM or discount-rate assumptions (e.g. `g >= k`).
+FCFF, FCFE, DDM (Gordon and optional two-stage) per ticker; pulls fundamentals via **Yahoo Finance** (`yfinance`) first, then **Alpha Vantage** (`INCOME_STATEMENT`, `BALANCE_SHEET`, `CASH_FLOW`, `OVERVIEW`) when the key is set and Yahoo cannot supply a complete bundle. Response `dataSource` is `yahoo`, `alpha-vantage`, or `mixed` when tickers used different providers. `INVALID_VALUATION` is returned for invalid DDM or discount-rate assumptions (e.g. `g >= k`).
 
 ---
 

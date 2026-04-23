@@ -275,10 +275,7 @@ class ValuationService:
                 )
             )
 
-        if len(sources_seen) == 1:
-            source = next(iter(sources_seen))
-        else:
-            source = "mixed"
+        source = next(iter(sources_seen)) if len(sources_seen) == 1 else "mixed"
 
         return (
             ValuationResult(

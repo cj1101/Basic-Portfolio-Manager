@@ -42,7 +42,7 @@ These were captured in the Phase 0 Q&A and are frozen for the rest of the build.
 | 8 | Alpha source | **Historical regression residual**: `αᵢ = mean(excess_i) − βᵢ · mean(excess_market)` computed over the same return window. Documented in UI copy as *backward-looking*. |
 | 9 | v1 scope | **Full** — optimizer + 5 tabs + chat + backtest + saved portfolios + rebalancing drift + multi-portfolio compare + PDF export. |
 | 10 | Course / portfolio report metrics | **Fama–French 3** is available as an *alternative* to CAPM for per-ticker return attribution and expected returns; factor data is **bundled** (Kenneth French library) and not fetched from market vendors. `POST /optimize` returns only the Markowitz + CAPM/SIM path; `POST /api/analytics/performance` and `POST /api/valuation` are **separate** calls (keeps the optimizer response lean). |
-| 11 | Fundamentals (Alpha Vantage) | `INCOME_STATEMENT`, `BALANCE_SHEET`, and `CASH_FLOW` (plus `OVERVIEW` when needed) for FCFF, FCFE, and DDM; cached in SQLite with long TTL. |
+| 11 | Fundamentals for valuation | **Yahoo Finance** (`yfinance`, annual statements + `info`) is primary for FCFF, FCFE, and DDM. **Alpha Vantage** (`INCOME_STATEMENT`, `BALANCE_SHEET`, `CASH_FLOW`, `OVERVIEW`) is an automatic fallback when Yahoo data is incomplete/unavailable and `ALPHA_VANTAGE_API_KEY` is set. Cached in SQLite with long TTL. |
 
 ---
 
