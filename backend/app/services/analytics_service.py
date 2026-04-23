@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import math
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 
 import numpy as np
 import pandas as pd
 
-from app.data.fama_french_factors import FamaFrenchMonth, by_year_month_index, load_fama_french_monthly
+from app.data.fama_french_factors import (
+    FamaFrenchMonth,
+    by_year_month_index,
+    load_fama_french_monthly,
+)
 from app.data.service import DataService, HistoricalResult
 from app.errors import InsufficientHistoryError, InvalidReturnWindowError
 from app.schemas import (
@@ -21,6 +25,7 @@ from app.schemas import (
     ORPPerformanceMetrics,
     ReturnFrequency,
 )
+from app.services.optimize_service import MARKET_PROXY_TICKER, MIN_ALIGNED_OBSERVATIONS
 from app.services.returns_frame import build_return_frame
 from quant import (
     annualization_factor,
@@ -33,10 +38,15 @@ from quant import (
     fama_french_three_regression,
     single_index_metrics,
 )
-from quant.holding_period_monthly import mean_monthly_arithmetic_geometric, simple_monthly_returns_from_close_series
-from quant.portfolio_risk import sim_portfolio_variance_decomposition, total_variance_from_covariance
+from quant.holding_period_monthly import (
+    mean_monthly_arithmetic_geometric,
+    simple_monthly_returns_from_close_series,
+)
+from quant.portfolio_risk import (
+    sim_portfolio_variance_decomposition,
+    total_variance_from_covariance,
+)
 from quant.treynor import treynor_ratio
-from app.services.optimize_service import MARKET_PROXY_TICKER, MIN_ALIGNED_OBSERVATIONS
 
 MARKET = MARKET_PROXY_TICKER
 SIM_MISMATCH_WARN = 1e-4
@@ -299,6 +309,6 @@ class AnalyticsService:
 
 
 __all__ = [
-    "AnalyticsService",
     "MARKET",
+    "AnalyticsService",
 ]

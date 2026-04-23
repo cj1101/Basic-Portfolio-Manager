@@ -31,9 +31,7 @@ from app.errors import (
     AppError,
     InsufficientHistoryError,
     InvalidReturnWindowError,
-    UnknownTickerError,
 )
-from app.services.returns_frame import build_return_frame
 from app.schemas import (
     CorrelationMatrix,
     CovarianceMatrix,
@@ -44,6 +42,7 @@ from app.schemas import (
     ReturnFrequency,
     StockMetrics,
 )
+from app.services.returns_frame import build_return_frame
 from quant import (
     InvalidRiskProfileError as QuantInvalidRiskProfileError,
 )

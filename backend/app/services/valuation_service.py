@@ -118,7 +118,7 @@ class ValuationService:
                 )
                 continue
 
-            i0, i1 = ann_i[0], ann_i[1] if len(ann_i) > 1 else ann_i[0]
+            i0 = ann_i[0]
             b0, b1 = ann_b[0], ann_b[1] if len(ann_b) > 1 else ann_b[0]
             c0 = ann_c[0]
 
