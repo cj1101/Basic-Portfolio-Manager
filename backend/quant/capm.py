@@ -45,9 +45,7 @@ def capm_total_expected_return(
     risk_free_rate: float,
 ) -> float:
     """``r_CAPM + α``; single-index view of an asset's expected return."""
-    return capm_required_return(beta, market_expected_return, risk_free_rate) + float(
-        alpha
-    )
+    return capm_required_return(beta, market_expected_return, risk_free_rate) + float(alpha)
 
 
 def capm_systematic_variance(beta: float, market_variance: float) -> float:
@@ -64,9 +62,7 @@ def capm_total_variance(
 ) -> float:
     """``β² · σ²_M + σ²(e)``. Total variance under the single-index model."""
     if float(firm_specific_var) < 0:
-        raise ValueError(
-            f"firm_specific_var must be non-negative; got {firm_specific_var}"
-        )
+        raise ValueError(f"firm_specific_var must be non-negative; got {firm_specific_var}")
     return capm_systematic_variance(beta, market_variance) + float(firm_specific_var)
 
 

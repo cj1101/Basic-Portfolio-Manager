@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import contextlib
 from datetime import UTC, datetime
 from datetime import date as Date
 from typing import Any
+
+import numpy as np
 
 from app.data.calendar import last_trading_day_on_or_before
 from app.data.service import DataService
@@ -16,6 +19,7 @@ from app.schemas import (
     ValuationRequest,
     ValuationResult,
 )
+from quant.sim import single_index_metrics
 from quant.valuation_cashflow import (
     equity_value_from_enterprise_value,
     fcfe_equity_value_perpetuity,
@@ -314,38 +318,39 @@ class ValuationService:
                     as_of=anchor,
                 )
                 historical_prices = sorted(hist.bars, key=lambda b: b.date.isoformat())
-                if historical_prices:
-                    if spy_bars:
-                        spy_dict = {b.date.isoformat(): b.close for b in spy_bars}
-                        aligned_i = []
-                        aligned_m = []
-                        prev_i = None
-                        prev_m = None
-                        for b in historical_prices:
-                            dstr = b.date.isoformat()
-                            if dstr in spy_dict:
-                                if prev_i is not None and prev_m is not None:
-                                    aligned_i.append((b.close - prev_i) / prev_i)
-                                    aligned_m.append((spy_dict[dstr] - prev_m) / prev_m)
-                                prev_i = b.close
-                                prev_m = spy_dict[dstr]
-                            else:
-                                prev_i = None
-                                prev_m = None
-                        
-                        if len(aligned_i) >= 2:
-                            from quant.sim import single_index_metrics
-                            import numpy as np
-                            try:
-                                sim = single_index_metrics(aligned_i, aligned_m, risk_free_per_period=risk_free_rate/12.0)
-                                calculated_beta = float(sim.beta)
-                            except Exception as e:
-                                tw.append(f"Beta regression failed: {e}")
-                            
-                            arr_i = np.array(aligned_i)
-                            geom_mean = np.prod(1 + arr_i) ** (12.0 / len(arr_i)) - 1.0
-                            historical_return = float(geom_mean)
-                            historical_volatility = float(np.std(arr_i, ddof=1) * np.sqrt(12.0))
+                if historical_prices and spy_bars:
+                    spy_dict = {b.date.isoformat(): b.close for b in spy_bars}
+                    aligned_i = []
+                    aligned_m = []
+                    prev_i = None
+                    prev_m = None
+                    for b in historical_prices:
+                        dstr = b.date.isoformat()
+                        if dstr in spy_dict:
+                            if prev_i is not None and prev_m is not None:
+                                aligned_i.append((b.close - prev_i) / prev_i)
+                                aligned_m.append((spy_dict[dstr] - prev_m) / prev_m)
+                            prev_i = b.close
+                            prev_m = spy_dict[dstr]
+                        else:
+                            prev_i = None
+                            prev_m = None
+
+                    if len(aligned_i) >= 2:
+                        try:
+                            sim = single_index_metrics(
+                                aligned_i,
+                                aligned_m,
+                                risk_free_per_period=risk_free_rate / 12.0,
+                            )
+                            calculated_beta = float(sim.beta)
+                        except Exception as e:
+                            tw.append(f"Beta regression failed: {e}")
+
+                        arr_i = np.array(aligned_i)
+                        geom_mean = np.prod(1 + arr_i) ** (12.0 / len(arr_i)) - 1.0
+                        historical_return = float(geom_mean)
+                        historical_volatility = float(np.std(arr_i, ddof=1) * np.sqrt(12.0))
             except Exception as e:
                 tw.append(f"Failed to fetch 10y historical prices: {e}")
 
@@ -404,10 +409,7 @@ class ValuationService:
                 weight_of_equity = e_val / v_val
                 weight_of_debt = d_val / v_val
 
-                if d_val > 0 and int_exp > 0:
-                    cost_of_debt = int_exp / d_val
-                else:
-                    cost_of_debt = 0.0
+                cost_of_debt = int_exp / d_val if d_val > 0 and int_exp > 0 else 0.0
 
                 calculated_wacc = (weight_of_equity * k_e) + (weight_of_debt * cost_of_debt * (1 - t_rate))
             else:
@@ -428,8 +430,8 @@ class ValuationService:
             )
             roe = _num(ov_inputs, "returnOnEquity", "ReturnOnEquityTTM")
             if roe is None and _num(i0, "netIncome") and _num(b0, "totalStockholderEquity"):
-                try: roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
-                except ZeroDivisionError: pass
+                with contextlib.suppress(ZeroDivisionError):
+                    roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
 
             payout_ratio = _num(ov_inputs, "payoutRatio", "PayoutRatio")
             if payout_ratio is None and dps is not None and earnings_per_share and earnings_per_share > 0:
@@ -530,23 +532,23 @@ class ValuationService:
             # Earnings and Cash Flow Analysis
             gross_margin = _num(ov_inputs, "grossMargins")
             if gross_margin is None and _num(i0, "grossProfit") and _num(i0, "totalRevenue"):
-                try: gross_margin = _num(i0, "grossProfit") / _num(i0, "totalRevenue")
-                except ZeroDivisionError: pass
-            
+                with contextlib.suppress(ZeroDivisionError):
+                    gross_margin = _num(i0, "grossProfit") / _num(i0, "totalRevenue")
+
             operating_margin = _num(ov_inputs, "operatingMargins", "OperatingMarginTTM")
             if operating_margin is None and ebit is not None and _num(i0, "totalRevenue"):
-                try: operating_margin = ebit / _num(i0, "totalRevenue")
-                except ZeroDivisionError: pass
+                with contextlib.suppress(ZeroDivisionError):
+                    operating_margin = ebit / _num(i0, "totalRevenue")
 
             roa = _num(ov_inputs, "returnOnAssets", "ReturnOnAssetsTTM")
             if roa is None and _num(i0, "netIncome") and _num(b0, "totalAssets"):
-                try: roa = _num(i0, "netIncome") / _num(b0, "totalAssets")
-                except ZeroDivisionError: pass
+                with contextlib.suppress(ZeroDivisionError):
+                    roa = _num(i0, "netIncome") / _num(b0, "totalAssets")
 
             roe = _num(ov_inputs, "returnOnEquity", "ReturnOnEquityTTM")
             if roe is None and _num(i0, "netIncome") and _num(b0, "totalStockholderEquity"):
-                try: roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
-                except ZeroDivisionError: pass
+                with contextlib.suppress(ZeroDivisionError):
+                    roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
 
             book_value_per_share = _num(ov_inputs, "bookValue", "BookValue")
             earnings_per_share = (

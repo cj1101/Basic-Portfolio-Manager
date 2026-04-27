@@ -82,7 +82,7 @@ export function CourseMetricsTab() {
     } finally {
       setLoading(false);
     }
-  }, [optimizationRequest, result]);
+  }, [tickers, optimizationRequest, result]);
 
   const loadValuation = useCallback(async () => {
     setErr(null);

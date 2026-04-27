@@ -9,12 +9,12 @@ from datetime import date as Date
 import numpy as np
 import pandas as pd
 
+from app.data.calendar import last_trading_day_on_or_before
 from app.data.fama_french_factors import (
     FamaFrenchMonth,
     by_year_month_index,
     load_fama_french_monthly,
 )
-from app.data.calendar import last_trading_day_on_or_before
 from app.data.service import DataService, HistoricalResult
 from app.errors import InsufficientHistoryError, InvalidReturnWindowError
 from app.schemas import (

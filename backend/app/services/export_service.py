@@ -1,17 +1,16 @@
 # ExportService - Automated Portfolio Analysis Excel Export
 import io
-import math
-from datetime import datetime
+
 import openpyxl
-from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.styles import Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from app.schemas import (
-    OptimizationResult,
     AnalyticsPerformanceResult,
+    OptimizationResult,
     ValuationResult,
-    ReturnFrequency,
 )
+
 
 class ExportService:
     def __init__(self):
@@ -117,7 +116,8 @@ class ExportService:
         ws["M1"] = "10 Years"
         ws["N1"] = "5 Years"
         ws["O1"] = "3 Years"
-        for j in range(12, 16): ws.cell(row=1, column=j).font = self.bold_font
+        for j in range(12, 16):
+            ws.cell(row=1, column=j).font = self.bold_font
 
         metrics = [
             ("Arithmetic Monthly Return", "C"),
@@ -163,7 +163,8 @@ class ExportService:
         ws.cell(row=1, column=len(tickers)+2, value="S&P500").font = self.bold_font
         ws.cell(row=1, column=len(tickers)+3, value="RF").font = self.bold_font
 
-        for j in range(2, len(tickers)+5): ws.cell(row=2, column=j, value=100)
+        for j in range(2, len(tickers) + 5):
+            ws.cell(row=2, column=j, value=100)
         
         dates = [b.date for b in sorted(spy_bars, key=lambda x: x.date)]
         for i, d in enumerate(dates, 2):
@@ -238,7 +239,8 @@ class ExportService:
                     continue
                 ws.cell(row=row, column=1, value=lab)
                 cell = ws.cell(row=row, column=2, value=val)
-                if fmt: cell.number_format = fmt
+                if fmt:
+                    cell.number_format = fmt
                 row += 1
             row += 2
 
@@ -259,7 +261,8 @@ class ExportService:
         ws.cell(row=row, column=1, value="Fama-French 3-Factor Model").font = self.bold_font
         row += 1
         headers = ["Ticker", "Beta Mkt", "Beta SMB", "Beta HML", "Alpha (Annual)", "Expected Ret (FF3)"]
-        for j, h in enumerate(headers, 1): ws.cell(row=row, column=j, value=h).font = self.bold_font
+        for j, h in enumerate(headers, 1):
+            ws.cell(row=row, column=j, value=h).font = self.bold_font
         row += 1
         for f in analytics.fama_french:
             ws.cell(row=row, column=1, value=f.ticker)
@@ -291,7 +294,8 @@ class ExportService:
         ws.cell(row=row, column=1, value="Correlation Matrix").font = self.bold_font
         row += 1
         ts = optimize.correlation.tickers
-        for j, t in enumerate(ts, 2): ws.cell(row=row, column=j, value=t).font = self.bold_font
+        for j, t in enumerate(ts, 2):
+            ws.cell(row=row, column=j, value=t).font = self.bold_font
         row += 1
         for i, t in enumerate(ts):
             ws.cell(row=row, column=1, value=t).font = self.bold_font
