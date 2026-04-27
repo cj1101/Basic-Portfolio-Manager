@@ -311,16 +311,39 @@ class DataService:
     # Risk-free rate
     # ------------------------------------------------------------------
 
-    async def get_risk_free_rate(self) -> RiskFreeRateResult:
-        cache_key = "rfr:latest"
+    async def get_risk_free_rate(self, *, window_end: Date | None = None) -> RiskFreeRateResult:
+        """Latest Treasury bill rate, optionally anchored to ``window_end`` (NYSE-aligned).
+
+        When ``window_end`` is set (typically ``last_trading_day_on_or_before(as_of)``),
+        returns the newest FRED ``DGS3MO`` observation on or before that calendar date.
+        """
+
+        cache_key = "rfr:latest" if window_end is None else f"rfr:end:{window_end.isoformat()}"
 
         async def _load() -> RiskFreeRateResult:
-            cached = await self._cache.get_risk_free_rate(self._rfr_ttl)
-            if cached is not None:
-                return RiskFreeRateResult(cached.rate, cached.as_of, cached.source, [])
-            return await self._fetch_risk_free_rate()
+            if window_end is None:
+                cached = await self._cache.get_risk_free_rate(self._rfr_ttl)
+                if cached is not None:
+                    return RiskFreeRateResult(cached.rate, cached.as_of, cached.source, [])
+                return await self._fetch_risk_free_rate()
+            return await self._fetch_risk_free_rate_as_of(window_end)
 
         return await self._cache.run_singleflight(cache_key, _load)
+
+    async def _fetch_risk_free_rate_as_of(self, window_end: Date) -> RiskFreeRateResult:
+        warnings: list[str] = []
+        if self._fred is not None:
+            try:
+                payload = await self._fred.get_dgs3mo_on_or_before(window_end)
+                return RiskFreeRateResult(
+                    payload["rate"], payload["as_of"], payload["source"], warnings
+                )
+            except ProviderUnavailableError as exc:
+                logger.warning("FRED unavailable for window_end=%s: %s", window_end, exc.message)
+                warnings.append(f"FRED unavailable: {exc.message}; using static fallback")
+
+        fallback_as_of = datetime.combine(window_end, datetime.min.time(), tzinfo=UTC)
+        return RiskFreeRateResult(FRED_FALLBACK_RATE, fallback_as_of, "FALLBACK", warnings)
 
     async def _fetch_risk_free_rate(self) -> RiskFreeRateResult:
         warnings: list[str] = []

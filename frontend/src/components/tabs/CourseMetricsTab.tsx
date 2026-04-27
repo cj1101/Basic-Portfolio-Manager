@@ -47,7 +47,8 @@ function fmtPct(x: number | null | undefined, digits = 4): string {
 }
 
 export function CourseMetricsTab() {
-  const { tickers, returnFrequency, lookbackYears, result } = usePortfolio();
+  const { optimizationRequest, result } = usePortfolio();
+  const tickers = optimizationRequest.tickers;
   const [analytics, setAnalytics] = useState<AnalyticsPerformanceResult | null>(null);
   const [valuation, setValuation] = useState<ValuationResult | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -68,8 +69,9 @@ export function CourseMetricsTab() {
       const res = await postAnalyticsPerformance({
         tickers,
         orpWeights,
-        returnFrequency,
-        lookbackYears,
+        returnFrequency: optimizationRequest.returnFrequency ?? "daily",
+        lookbackYears: optimizationRequest.lookbackYears ?? 5,
+        ...(optimizationRequest.asOf ? { asOf: optimizationRequest.asOf } : {}),
         yStar: result.complete.yStar,
         weightRiskFree: result.complete.weightRiskFree,
       });
@@ -80,7 +82,7 @@ export function CourseMetricsTab() {
     } finally {
       setLoading(false);
     }
-  }, [tickers, returnFrequency, lookbackYears, result]);
+  }, [optimizationRequest, result]);
 
   const loadValuation = useCallback(async () => {
     setErr(null);
@@ -93,6 +95,7 @@ export function CourseMetricsTab() {
       wacc: 0.09,
       fcffGrowth: 0.02,
       fcffTerminalGrowth: 0.02,
+      ...(optimizationRequest.asOf ? { asOf: optimizationRequest.asOf } : {}),
     };
     try {
       for (let attempt = 1; attempt <= VALUATION_MAX_ATTEMPTS; attempt += 1) {
@@ -119,7 +122,7 @@ export function CourseMetricsTab() {
       setLoadingVal(false);
       setValuationThrottleAttempt(0);
     }
-  }, [tickers]);
+  }, [tickers, optimizationRequest.asOf]);
 
   return (
     <div className="space-y-8">

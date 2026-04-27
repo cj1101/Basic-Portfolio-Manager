@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from "react";
@@ -54,6 +55,10 @@ export interface PortfolioState {
   allowShort: boolean;
   allowLeverage: boolean;
   riskProfile: RiskProfile;
+  /** When true, POST /optimize uses ``asOfDate`` as the window end anchor. */
+  useHistoricalAsOf: boolean;
+  /** ``YYYY-MM-DD`` calendar date for the last bar in the estimation window. */
+  asOfDate: string;
 
   // --- request lifecycle --------------------------------------------------
   status: RequestStatus;
@@ -66,6 +71,9 @@ export interface PortfolioState {
   /** True when `result` comes from the offline/demo fixture rather than the server. */
   isFallbackResult: boolean;
 
+  /** Debounced body sent to ``POST /optimize`` (aligned with TanStack Query cache key). */
+  optimizationRequest: OptimizationRequest;
+
   // --- actions ------------------------------------------------------------
   addTicker: (t: Ticker) => void;
   removeTicker: (t: Ticker) => void;
@@ -77,6 +85,8 @@ export interface PortfolioState {
   setRiskAversion: (a: number) => void;
   setTargetReturn: (r: number | undefined) => void;
   setRiskProfile: (profile: RiskProfile) => void;
+  setHistoricalAnalysisEnabled: (enabled: boolean) => void;
+  setAsOfDate: (isoDate: string) => void;
   refetch: () => void;
   reset: () => void;
 }
@@ -101,6 +111,10 @@ const INITIAL_RISK_PROFILE: RiskProfile = {
 const DEFAULT_FRONTIER_RESOLUTION = 40;
 const DEBOUNCE_MS = 400;
 
+function todayISO(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const USE_FIXTURE_FALLBACK =
   import.meta.env?.VITE_USE_FIXTURE === "1" ||
   import.meta.env?.VITE_USE_FIXTURE === "true";
@@ -112,6 +126,7 @@ function buildRequest(state: {
   allowShort: boolean;
   allowLeverage: boolean;
   riskProfile: RiskProfile;
+  asOf?: string;
 }): OptimizationRequest {
   return {
     tickers: state.tickers,
@@ -121,6 +136,7 @@ function buildRequest(state: {
     allowShort: state.allowShort,
     allowLeverage: state.allowLeverage,
     frontierResolution: DEFAULT_FRONTIER_RESOLUTION,
+    ...(state.asOf ? { asOf: state.asOf } : {}),
   };
 }
 
@@ -131,6 +147,11 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
   const [allowShort, setAllowShort] = useState<boolean>(true);
   const [allowLeverage, setAllowLeverage] = useState<boolean>(true);
   const [riskProfile, setRiskProfileState] = useState<RiskProfile>(INITIAL_RISK_PROFILE);
+  const [useHistoricalAsOf, setUseHistoricalAsOfState] = useState(false);
+  const [asOfDate, setAsOfDateState] = useState<string>(() => todayISO());
+  const savedWindowBeforeHistoricalRef = useRef<{ lookback: number; frequency: ReturnFrequency } | null>(
+    null,
+  );
 
   // Only the fields that affect the server request are debounced. The risk
   // profile bypasses this — slider changes go straight into the request (so
@@ -143,8 +164,13 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
   const debouncedLookback = useDebouncedValue(lookbackYears, DEBOUNCE_MS);
   const debouncedAllowShort = useDebouncedValue(allowShort, DEBOUNCE_MS);
   const debouncedAllowLeverage = useDebouncedValue(allowLeverage, DEBOUNCE_MS);
+  const debouncedHistoricalMode = useDebouncedValue(useHistoricalAsOf, DEBOUNCE_MS);
+  const debouncedAsOfDate = useDebouncedValue(asOfDate, DEBOUNCE_MS);
 
-  const request = useMemo(
+  const asOfWire =
+    debouncedHistoricalMode && debouncedAsOfDate.length >= 10 ? debouncedAsOfDate : undefined;
+
+  const optimizationRequest = useMemo(
     () =>
       buildRequest({
         tickers: debouncedTickers,
@@ -153,6 +179,7 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
         allowShort: debouncedAllowShort,
         allowLeverage: debouncedAllowLeverage,
         riskProfile,
+        ...(asOfWire !== undefined ? { asOf: asOfWire } : {}),
       }),
     [
       debouncedTickers,
@@ -161,12 +188,13 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
       debouncedAllowShort,
       debouncedAllowLeverage,
       riskProfile,
+      asOfWire,
     ],
   );
 
   const enabled = !USE_FIXTURE_FALLBACK && debouncedTickers.length >= 2;
 
-  const query = useOptimization(request, { enabled });
+  const query = useOptimization(optimizationRequest, { enabled });
 
   // Live-derive the Complete Portfolio from the current (server) ORP + the
   // *non-debounced* risk profile. This runs on every slider tick without
@@ -261,6 +289,37 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
     setAllowShort(true);
     setAllowLeverage(true);
     setRiskProfileState(INITIAL_RISK_PROFILE);
+    setUseHistoricalAsOfState(false);
+    setAsOfDateState(todayISO());
+    savedWindowBeforeHistoricalRef.current = null;
+  }, []);
+
+  const setHistoricalAnalysisEnabled = useCallback(
+    (enabled: boolean) => {
+      if (enabled) {
+        savedWindowBeforeHistoricalRef.current = {
+          lookback: lookbackYears,
+          frequency: returnFrequency,
+        };
+        setLookbackYearsState(10);
+        setReturnFrequency("monthly");
+        setAsOfDateState(todayISO());
+        setUseHistoricalAsOfState(true);
+      } else {
+        setUseHistoricalAsOfState(false);
+        const s = savedWindowBeforeHistoricalRef.current;
+        if (s) {
+          setLookbackYearsState(s.lookback);
+          setReturnFrequency(s.frequency);
+        }
+        savedWindowBeforeHistoricalRef.current = null;
+      }
+    },
+    [lookbackYears, returnFrequency],
+  );
+
+  const setAsOfDate = useCallback((isoDate: string) => {
+    setAsOfDateState(isoDate);
   }, []);
 
   const value: PortfolioState = useMemo(
@@ -271,12 +330,15 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
       allowShort,
       allowLeverage,
       riskProfile,
+      useHistoricalAsOf,
+      asOfDate,
       status,
       isFetching: query.isFetching,
       error: (query.error as ApiError | null) ?? null,
       lastUpdatedAt,
       result,
       isFallbackResult,
+      optimizationRequest,
       addTicker,
       removeTicker,
       setTickers,
@@ -287,6 +349,8 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
       setRiskAversion,
       setTargetReturn,
       setRiskProfile,
+      setHistoricalAnalysisEnabled,
+      setAsOfDate,
       refetch,
       reset,
     }),
@@ -297,12 +361,15 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
       allowShort,
       allowLeverage,
       riskProfile,
+      useHistoricalAsOf,
+      asOfDate,
       status,
       query.isFetching,
       query.error,
       lastUpdatedAt,
       result,
       isFallbackResult,
+      optimizationRequest,
       addTicker,
       removeTicker,
       setTickers,
@@ -310,6 +377,8 @@ export function PortfolioProvider({ children }: PropsWithChildren) {
       setRiskAversion,
       setTargetReturn,
       setRiskProfile,
+      setHistoricalAnalysisEnabled,
+      setAsOfDate,
       refetch,
       reset,
     ],

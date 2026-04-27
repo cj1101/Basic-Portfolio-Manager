@@ -526,6 +526,7 @@ class AnalyticsPerformanceRequest(BaseModel):
     lookback_years: int = Field(default=5, ge=1, le=20)
     y_star: float | None = None
     weight_risk_free: float | None = None
+    as_of: date | None = None
 
 class AnalyticsPerformanceResult(BaseModel):
     as_of: datetime
@@ -549,6 +550,7 @@ export interface AnalyticsPerformanceRequest {
   lookbackYears?: number;
   yStar?: number;
   weightRiskFree?: number;
+  asOf?: string;
 }
 
 export interface AnalyticsPerformanceResult {
@@ -576,6 +578,7 @@ class DdmTwoStageParams(BaseModel):
 
 class ValuationRequest(BaseModel):
     tickers: list[Ticker] = Field(min_length=1, max_length=20)
+    as_of: Date | None = None                # fiscal / historical alignment (NYSE window end)
     wacc: float | None = None
     fcff_growth: float | None = None
     fcff_terminal_growth: float | None = None
@@ -606,6 +609,8 @@ export interface DdmTwoStageParams { g1: number; g2: number; nPeriods: number; }
 
 export interface ValuationRequest {
   tickers: Ticker[];
+  /** ISO date; when set, valuation aligns fundamentals and prices to this anchor */
+  asOf?: string;
   wacc?: number;
   fcffGrowth?: number;
   fcffTerminalGrowth?: number;
@@ -767,6 +772,7 @@ class OptimizationRequest(BaseModel):
     allow_leverage: bool = True
     alpha_overrides: dict[Ticker, float] | None = None       # reserved; not used in v1
     frontier_resolution: int = Field(default=40, ge=5, le=200)
+    as_of: date | None = None                                # pins window end (NYSE calendar); omit = latest
 ```
 
 ```ts
@@ -779,6 +785,8 @@ export interface OptimizationRequest {
   allowLeverage?: boolean;
   alphaOverrides?: Record<Ticker, number>;
   frontierResolution?: number;
+  /** ``YYYY-MM-DD`` — estimation window ends at last trading day on/before this date */
+  asOf?: string;
 }
 ```
 
@@ -816,6 +824,45 @@ export interface CompareRequest {
 }
 ```
 
+### `ExportRequest`
+
+Body for ``POST /api/export`` (Excel workbook). Shares optimizer inputs with optional valuation overrides.
+
+```python
+class ExportRequest(BaseModel):
+    tickers: list[Ticker] = Field(min_length=1, max_length=30)
+    risk_profile: RiskProfile
+    return_frequency: ReturnFrequency = ReturnFrequency.DAILY
+    lookback_years: int = Field(default=5, ge=1, le=20)
+    allow_short: bool = True
+    allow_leverage: bool = True
+    as_of: date | None = None
+    wacc: float | None = None
+    fcff_growth: float | None = None
+    fcff_terminal_growth: float | None = None
+    cost_of_equity_override: float | None = None
+    ddm_gordon_g: float | None = None
+    ddm_two_stage: DdmTwoStageParams | None = None
+```
+
+```ts
+export interface ExportRequest {
+  tickers: Ticker[];
+  riskProfile: RiskProfile;
+  returnFrequency?: ReturnFrequency;
+  lookbackYears?: number;
+  allowShort?: boolean;
+  allowLeverage?: boolean;
+  asOf?: string;
+  wacc?: number;
+  fcffGrowth?: number;
+  fcffTerminalGrowth?: number;
+  costOfEquityOverride?: number;
+  ddmGordonG?: number;
+  ddmTwoStage?: DdmTwoStageParams;
+}
+```
+
 ### `AnalyticsPerformanceRequest` / `ValuationRequest`
 
 See [§3 domain types](#driftreport) (`AnalyticsPerformanceRequest`, `ValuationRequest`, `DdmTwoStageParams`) — the wire shapes are identical; they are listed here for endpoint discoverability.
@@ -842,7 +889,7 @@ Example response:
 
 ### 5.2 `GET /api/historical?ticker=AAPL&frequency=daily&years=5` → `{ ticker: Ticker, frequency: ReturnFrequency, bars: PriceBar[] }`
 
-Cache-friendly. `frequency` defaults to `daily`, `years` defaults to `5`.
+Cache-friendly. `frequency` defaults to `daily`, `years` defaults to `5`. Optional query `asOf=YYYY-MM-DD` pins the window end (last NYSE session on or before that calendar date); omit for “today”.
 
 Example (truncated):
 
@@ -941,15 +988,19 @@ Browser-owned chat history, persisted to the backend SQLite store at `CACHE_DB_P
 - `POST   /api/chat/sessions/{sessionId}/messages` — body `ChatRequest` → `ChatResponse`. Persists the final user turn plus the assistant reply (with `source` and `citations`).
 - `DELETE /api/chat/sessions/{sessionId}` → `204 No Content`.
 
-### 5.12 `POST /api/export/pdf` — body `{ result: OptimizationResult }` → `application/pdf` binary
+### 5.12 `POST /api/export` — body `ExportRequest` → Excel workbook (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`)
+
+Re-runs optimize, course analytics, and valuation inside the backend and streams an `.xlsx`. Uses the same optional ``asOf`` (camelCase ``asOf`` on JSON) as ``POST /api/optimize`` to anchor prices, risk-free (FRED ``DGS3MO`` on/before window end), SPY history for workbook charts, and trims bundled factor RF rows through that month.
+
+### 5.13 `POST /api/export/pdf` — body `{ result: OptimizationResult }` → `application/pdf` binary
 
 Returns the rendered report as a PDF stream. `Content-Disposition: attachment; filename="portfolio-<requestId>.pdf"`.
 
-### 5.13 `POST /api/analytics/performance` — body `AnalyticsPerformanceRequest` → `AnalyticsPerformanceResult`
+### 5.14 `POST /api/analytics/performance` — body `AnalyticsPerformanceRequest` → `AnalyticsPerformanceResult`
 
 Treynor, portfolio Jensen (SIM) alpha, **SIM variance decomposition** for the **ORP** weights supplied, **3/5/10-year** arithmetic and geometric *mean monthly* simple returns, and per-ticker Fama–French 3 (bundled factors). Does not run the Markowitz optimizer.
 
-### 5.14 `POST /api/valuation` — body `ValuationRequest` → `ValuationResult`
+### 5.15 `POST /api/valuation` — body `ValuationRequest` → `ValuationResult`
 
 FCFF, FCFE, DDM (Gordon and optional two-stage) per ticker; pulls fundamentals via **Yahoo Finance** (`yfinance`) first, then **Alpha Vantage** (`INCOME_STATEMENT`, `BALANCE_SHEET`, `CASH_FLOW`, `OVERVIEW`) when the key is set and Yahoo cannot supply a complete bundle. Response `dataSource` is `yahoo`, `alpha-vantage`, or `mixed` when tickers used different providers. `INVALID_VALUATION` is returned for invalid DDM or discount-rate assumptions (e.g. `g >= k`).
 

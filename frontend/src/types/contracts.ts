@@ -279,6 +279,8 @@ export interface OptimizationRequest {
   allowLeverage?: boolean;
   alphaOverrides?: Record<Ticker, number>;
   frontierResolution?: number;
+  /** YYYY-MM-DD; pins window end when set */
+  asOf?: string;
 }
 
 export interface BacktestRequest {
@@ -340,6 +342,7 @@ export interface AnalyticsPerformanceRequest {
   lookbackYears?: number;
   yStar?: number;
   weightRiskFree?: number;
+  asOf?: string;
 }
 
 export interface AnalyticsPerformanceResult {
@@ -364,6 +367,8 @@ export interface DdmTwoStageParams {
 
 export interface ValuationRequest {
   tickers: Ticker[];
+  /** ISO date; NYSE window end pins fundamentals and historical prices when set */
+  asOf?: string;
   wacc?: number;
   fcffGrowth?: number;
   fcffTerminalGrowth?: number;
@@ -418,6 +423,7 @@ export interface ExportRequest {
   lookbackYears?: number;
   allowShort?: boolean;
   allowLeverage?: boolean;
+  asOf?: string;
   wacc?: number;
   fcffGrowth?: number;
   fcffTerminalGrowth?: number;

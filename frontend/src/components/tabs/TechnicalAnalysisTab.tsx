@@ -30,7 +30,7 @@ function isThrottleError(e: unknown): boolean {
 }
 
 export function TechnicalAnalysisTab() {
-  const { tickers } = usePortfolio();
+  const { tickers, optimizationRequest } = usePortfolio();
 
   // Ticker selected for the interactive charts
   const [selectedTicker, setSelectedTicker] = useState<string>(tickers[0] || "");
@@ -46,7 +46,12 @@ export function TechnicalAnalysisTab() {
 
   // Historical price data for all tickers + SPY benchmark
   const allTickers = Array.from(new Set([...tickers, "SPY"]));
-  const queries = useHistoricalBulk(allTickers, "daily", 3);
+  const queries = useHistoricalBulk(
+    allTickers,
+    optimizationRequest.returnFrequency ?? "daily",
+    optimizationRequest.lookbackYears ?? 5,
+    optimizationRequest.asOf,
+  );
 
   const isLoading = queries.some((q) => q.isLoading);
   const isError = queries.some((q) => q.isError);
@@ -71,6 +76,7 @@ export function TechnicalAnalysisTab() {
       wacc: 0.09,
       fcffGrowth: 0.02,
       fcffTerminalGrowth: 0.02,
+      ...(optimizationRequest.asOf ? { asOf: optimizationRequest.asOf } : {}),
     };
     try {
       for (let i = 1; i <= VALUATION_MAX_ATTEMPTS; i++) {
@@ -93,7 +99,7 @@ export function TechnicalAnalysisTab() {
       setValuationLoading(false);
       setAttempt(0);
     }
-  }, [tickers]);
+  }, [tickers, optimizationRequest.asOf]);
 
   return (
     <div className="space-y-8">

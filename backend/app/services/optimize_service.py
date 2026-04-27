@@ -22,10 +22,12 @@ import math
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from datetime import date as Date
 
 import numpy as np
 import pandas as pd
 
+from app.data.calendar import last_trading_day_on_or_before
 from app.data.service import DataService, HistoricalResult
 from app.errors import (
     AppError,
@@ -101,13 +103,21 @@ class OptimizeService:
         # regressions use the exact same window of bars.
         fetch_tickers = [*tickers, MARKET_PROXY_TICKER]
 
-        rfr_task = asyncio.create_task(data_service.get_risk_free_rate())
+        as_anchor: Date | None = request.as_of
+        window_end_for_rfr: Date | None = (
+            last_trading_day_on_or_before(as_anchor) if as_anchor is not None else None
+        )
+
+        rfr_task = asyncio.create_task(
+            data_service.get_risk_free_rate(window_end=window_end_for_rfr)
+        )
         hist_tasks = {
             t: asyncio.create_task(
                 data_service.get_historical(
                     t,
                     frequency=request.return_frequency,
                     lookback_years=request.lookback_years,
+                    as_of=as_anchor,
                 )
             )
             for t in fetch_tickers

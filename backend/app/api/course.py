@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from datetime import date as Date
+
 from fastapi import APIRouter, Depends, Response
 
 from app.api.deps import get_service
+from app.data.calendar import last_trading_day_on_or_before
 from app.data.service import DataService
 from app.schemas import (
     AnalyticsPerformanceRequest,
@@ -48,7 +51,10 @@ async def post_valuation(
     response: Response,
     data_service: DataService = Depends(get_service),
 ) -> ValuationResult:
-    rfr = await data_service.get_risk_free_rate()
+    window_end_rfr: Date | None = (
+        last_trading_day_on_or_before(body.as_of) if body.as_of is not None else None
+    )
+    rfr = await data_service.get_risk_free_rate(window_end=window_end_rfr)
     svc = ValuationService()
     result, src = await svc.run(
         body,

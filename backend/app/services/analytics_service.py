@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from datetime import UTC, datetime
+from datetime import date as Date
 
 import numpy as np
 import pandas as pd
@@ -13,6 +14,7 @@ from app.data.fama_french_factors import (
     by_year_month_index,
     load_fama_french_monthly,
 )
+from app.data.calendar import last_trading_day_on_or_before
 from app.data.service import DataService, HistoricalResult
 from app.errors import InsufficientHistoryError, InvalidReturnWindowError
 from app.schemas import (
@@ -177,18 +179,27 @@ class AnalyticsService:
         if abs(s - 1.0) > 1e-4:
             raise InvalidReturnWindowError("orpWeights must sum to 1.0", {"sum": s})
 
-        rfr = await data_service.get_risk_free_rate()
+        anchor: Date | None = request.as_of
+        window_end_for_rfr: Date | None = (
+            last_trading_day_on_or_before(anchor) if anchor is not None else None
+        )
+
+        rfr = await data_service.get_risk_free_rate(window_end=window_end_for_rfr)
         fetch = [*tickers, MARKET]
         hist: dict[str, HistoricalResult] = {}
         for t in fetch:
             hist[t] = await data_service.get_historical(
-                t, frequency=request.return_frequency, lookback_years=request.lookback_years
+                t,
+                frequency=request.return_frequency,
+                lookback_years=request.lookback_years,
+                as_of=anchor,
             )
         # Longer window for 3/5/10y *monthly* mean returns (first ticker; prices only).
         hold_hist = await data_service.get_historical(
             tickers[0],
             frequency=ReturnFrequency.DAILY,
             lookback_years=max(12, request.lookback_years),
+            as_of=anchor,
         )
 
         warnings: list[str] = list(rfr.warnings)

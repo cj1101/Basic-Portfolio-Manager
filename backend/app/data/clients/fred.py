@@ -118,5 +118,69 @@ class FredClient:
             PROVIDER_NAME, "no non-null observation in the latest 10 rows"
         )
 
+    async def get_dgs3mo_on_or_before(self, anchor: Date) -> dict[str, Any]:
+        """Latest ``DGS3MO`` observation with ``observation.date <= anchor`` (decimal rate)."""
+
+        if self._http_client is None:
+            self._http_client = httpx.AsyncClient(timeout=self._timeout)
+
+        params = {
+            "series_id": SERIES_ID,
+            "api_key": self._api_key,
+            "file_type": "json",
+            "sort_order": "desc",
+            "observation_end": anchor.isoformat(),
+            "limit": "100",
+        }
+
+        try:
+            resp = await self._http_client.get(self._base_url, params=params)
+        except httpx.TimeoutException as exc:
+            raise ProviderUnavailableError(PROVIDER_NAME, "timeout") from exc
+        except httpx.RequestError as exc:
+            raise ProviderUnavailableError(PROVIDER_NAME, str(exc)) from exc
+
+        if resp.status_code >= 500:
+            raise ProviderUnavailableError(
+                PROVIDER_NAME, f"upstream {resp.status_code}"
+            )
+        if resp.status_code >= 400:
+            raise ProviderUnavailableError(
+                PROVIDER_NAME, f"status {resp.status_code}"
+            )
+
+        try:
+            payload = resp.json()
+        except ValueError as exc:
+            raise ProviderUnavailableError(PROVIDER_NAME, "invalid JSON") from exc
+
+        observations = payload.get("observations")
+        if not isinstance(observations, list) or not observations:
+            raise ProviderUnavailableError(PROVIDER_NAME, "no observations returned")
+
+        for obs in observations:
+            value = obs.get("value")
+            date_str = obs.get("date")
+            if value in (None, ".", ""):
+                continue
+            try:
+                percent = float(value)
+            except (TypeError, ValueError):
+                continue
+            try:
+                as_of_date = Date.fromisoformat(date_str)
+            except (TypeError, ValueError) as exc:
+                raise ProviderUnavailableError(
+                    PROVIDER_NAME, f"invalid observation date {date_str!r}"
+                ) from exc
+            if as_of_date > anchor:
+                continue
+            as_of = datetime.combine(as_of_date, datetime.min.time(), tzinfo=UTC)
+            return {"rate": percent / 100.0, "as_of": as_of, "source": "FRED"}
+
+        raise ProviderUnavailableError(
+            PROVIDER_NAME, f"no non-null observation on or before {anchor.isoformat()}"
+        )
+
 
 __all__ = ["PROVIDER_NAME", "SERIES_ID", "FredClient"]

@@ -148,6 +148,12 @@ def av_annual_reports_from_statement_frame(
             if av_key not in row_dict:
                 row_dict[av_key] = _to_av_str(val)
         if row_dict:
+            try:
+                fd = pd.Timestamp(col).date().isoformat()
+            except (TypeError, ValueError, OverflowError):
+                fd = None
+            if fd:
+                row_dict["fiscalDateEnding"] = fd
             reports.append(row_dict)
     return reports
 

@@ -201,6 +201,7 @@ export function getHistorical(
   ticker: string,
   frequency: ReturnFrequency = "daily",
   years: number = 3,
+  asOf?: string,
   init?: RequestInit,
 ): Promise<HistoricalResponse> {
   const params = new URLSearchParams({
@@ -208,6 +209,9 @@ export function getHistorical(
     frequency,
     years: years.toString(),
   });
+  if (asOf) {
+    params.set("asOf", asOf);
+  }
   return request<HistoricalResponse>(`/historical?${params.toString()}`, init);
 }
 

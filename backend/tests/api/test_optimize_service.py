@@ -98,7 +98,7 @@ class StubDataService:
             warnings=list(self._historical_warnings.get(ticker, [])),
         )
 
-    async def get_risk_free_rate(self) -> RiskFreeRateResult:
+    async def get_risk_free_rate(self, *, window_end=None) -> RiskFreeRateResult:
         self.rfr_calls += 1
         return RiskFreeRateResult(
             rate=self._rf,

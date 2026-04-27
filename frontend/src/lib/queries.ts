@@ -62,6 +62,7 @@ export interface OptimizationQueryKeyInput {
   allowLeverage: OptimizationRequest["allowLeverage"];
   frontierResolution: OptimizationRequest["frontierResolution"];
   alphaOverrides?: OptimizationRequest["alphaOverrides"];
+  asOf?: OptimizationRequest["asOf"];
 }
 
 export function optimizationQueryKey(input: OptimizationQueryKeyInput) {
@@ -75,6 +76,7 @@ export function optimizationQueryKey(input: OptimizationQueryKeyInput) {
       allowLeverage: input.allowLeverage,
       frontierResolution: input.frontierResolution,
       alphaOverrides: input.alphaOverrides,
+      asOf: input.asOf,
     },
   ] as const;
 }
@@ -98,6 +100,7 @@ export function useOptimization(
     allowLeverage: request.allowLeverage,
     frontierResolution: request.frontierResolution,
     alphaOverrides: request.alphaOverrides,
+    asOf: request.asOf,
   };
   return useQuery<OptimizationResult, ApiError>({
     queryKey: optimizationQueryKey(keyInput),
@@ -125,12 +128,13 @@ export function useHistoricalBulk(
   tickers: string[],
   frequency: ReturnFrequency = "daily",
   years: number = 3,
+  asOf?: string,
 ) {
   return useQueries({
     queries: tickers.map((ticker) => ({
-      queryKey: ["historical", ticker, frequency, years],
+      queryKey: ["historical", ticker, frequency, years, asOf ?? ""],
       queryFn: ({ signal }: { signal: AbortSignal }) =>
-        getHistorical(ticker, frequency, years, { signal }),
+        getHistorical(ticker, frequency, years, asOf, { signal }),
       staleTime: 5 * 60_000,
       retry: (count: number, error: unknown) => {
         if (!(error instanceof ApiError)) return count < 1;

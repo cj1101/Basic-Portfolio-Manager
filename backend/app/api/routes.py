@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import date as Date
+
 from fastapi import APIRouter, Depends, Query, Response
 
 from app.api.chat import router as chat_router
@@ -44,10 +46,11 @@ async def get_historical(
     ticker: Ticker = Query(..., description="Uppercase ticker symbol"),
     frequency: ReturnFrequency = Query(ReturnFrequency.DAILY),
     years: int = Query(5, ge=1, le=20, description="Lookback window in years"),
+    as_of: Date | None = Query(None, description="Anchor date for window end (optional)"),
     service: DataService = Depends(get_service),
 ) -> HistoricalResponse:
     result = await service.get_historical(
-        ticker, frequency=frequency, lookback_years=years
+        ticker, frequency=frequency, lookback_years=years, as_of=as_of
     )
     _set_provenance(response, result.source, result.warnings)
     return HistoricalResponse(

@@ -37,6 +37,7 @@ def test_av_annual_reports_from_frame_newest_first() -> None:
     )
     reports = av_annual_reports_from_statement_frame(frame, _income_row_to_av_key)
     assert len(reports) == 2
+    assert reports[0]["fiscalDateEnding"] == "2023-12-31"
     assert reports[0]["totalRevenue"] == "120"
     assert reports[0]["ebit"] == "15"
     assert reports[1]["totalRevenue"] == "100"

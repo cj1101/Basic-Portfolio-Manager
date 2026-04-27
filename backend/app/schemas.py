@@ -113,6 +113,8 @@ class OptimizationRequest(_CamelModel):
     allow_leverage: bool = True
     alpha_overrides: dict[Ticker, float] | None = None
     frontier_resolution: int = Field(default=40, ge=5, le=200)
+    # Pins the window end (last bar ≤ NYSE-aligned last trading day on/before this date).
+    as_of: Date | None = None
 
 
 class ChatMessage(_CamelModel):
@@ -225,6 +227,7 @@ class AnalyticsPerformanceRequest(_CamelModel):
     lookback_years: int = Field(default=5, ge=1, le=20)
     y_star: float | None = None
     weight_risk_free: float | None = None
+    as_of: Date | None = None
 
 
 class AnalyticsPerformanceResult(_CamelModel):
@@ -249,6 +252,7 @@ class DdmTwoStageParams(_CamelModel):
 
 class ValuationRequest(_CamelModel):
     tickers: list[Ticker] = Field(min_length=1, max_length=20)
+    as_of: Date | None = None
     wacc: float | None = None
     fcff_growth: float | None = None
     fcff_terminal_growth: float | None = None
@@ -329,6 +333,7 @@ class ExportRequest(_CamelModel):
     lookback_years: int = Field(default=5, ge=1, le=20)
     allow_short: bool = True
     allow_leverage: bool = True
+    as_of: Date | None = None
     # Valuation specific
     wacc: float | None = None
     fcff_growth: float | None = None

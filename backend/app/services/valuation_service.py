@@ -3,10 +3,19 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from datetime import date as Date
+from typing import Any
 
+from app.data.calendar import last_trading_day_on_or_before
 from app.data.service import DataService
 from app.errors import InvalidValuationError, ProviderUnavailableError
-from app.schemas import ReturnFrequency, TickerValuationBlock, ValuationRequest, ValuationResult
+from app.schemas import (
+    PriceBar,
+    ReturnFrequency,
+    TickerValuationBlock,
+    ValuationRequest,
+    ValuationResult,
+)
 from quant.valuation_cashflow import (
     equity_value_from_enterprise_value,
     fcfe_equity_value_perpetuity,
@@ -74,6 +83,106 @@ def _dividend_yield_decimal(ov: dict) -> float | None:
     return y
 
 
+def _parse_fiscal_end(row: dict[str, Any]) -> Date | None:
+    for key in ("fiscalDateEnding", "fiscal_year_end", "fiscalYearEnd"):
+        raw = row.get(key)
+        if raw is None or raw == "" or raw == "None":
+            continue
+        try:
+            s = str(raw).strip()[:10]
+            return Date.fromisoformat(s)
+        except ValueError:
+            continue
+    return None
+
+
+def select_annual_reports_as_of(
+    ann_i: list[dict[str, Any]],
+    ann_b: list[dict[str, Any]],
+    ann_c: list[dict[str, Any]],
+    window_end: Date | None,
+    tw: list[str],
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any], dict[str, Any]]:
+    """Latest fiscal year-end on or before ``window_end``; balance prior year for ΔNWC."""
+
+    if window_end is None:
+        i0 = ann_i[0]
+        c0 = ann_c[0]
+        b0 = ann_b[0]
+        b1 = ann_b[1] if len(ann_b) > 1 else ann_b[0]
+        return i0, c0, b0, b1
+
+    def best_stmt(rows: list[dict[str, Any]], label: str) -> dict[str, Any]:
+        dated = [(_parse_fiscal_end(r), r) for r in rows]
+        if all(fd is None for fd, _ in dated):
+            tw.append(
+                f"No fiscal period dates on {label} statements; using newest-available row order."
+            )
+            return rows[0]
+
+        qualified = [(fd, r) for fd, r in dated if fd is not None and fd <= window_end]
+        if qualified:
+            return max(qualified, key=lambda x: x[0])[1]
+
+        tw.append(
+            f"All {label} fiscal period ends are after {window_end.isoformat()}; "
+            "using oldest available annual row."
+        )
+        return rows[-1]
+
+    i0 = best_stmt(ann_i, "income")
+    fd_i = _parse_fiscal_end(i0)
+
+    def match_or_best(rows: list[dict[str, Any]], label: str, preferred_fd: Date | None) -> dict[str, Any]:
+        if preferred_fd is None:
+            return best_stmt(rows, label)
+        for r in rows:
+            if _parse_fiscal_end(r) == preferred_fd:
+                return r
+        tw.append(
+            f"No {label} row matching income fiscal period "
+            f"{preferred_fd.isoformat()}; using latest fiscal period on or before window end."
+        )
+        return best_stmt(rows, label)
+
+    c0 = match_or_best(ann_c, "cash flow", fd_i)
+    b0 = match_or_best(ann_b, "balance sheet", fd_i)
+
+    fd_b0 = _parse_fiscal_end(b0)
+    prior_candidates: list[tuple[Date, dict[str, Any]]] = []
+    if fd_b0 is not None:
+        for r in ann_b:
+            fd = _parse_fiscal_end(r)
+            if fd is not None and fd < fd_b0:
+                prior_candidates.append((fd, r))
+
+    if prior_candidates:
+        b1 = max(prior_candidates, key=lambda x: x[0])[1]
+        return i0, c0, b0, b1
+
+    idx_b0 = next((i for i, r in enumerate(ann_b) if r is b0), 0)
+    if idx_b0 + 1 < len(ann_b):
+        b1 = ann_b[idx_b0 + 1]
+        tw.append(
+            "Prior-year balance sheet for ΔNWC: adjacent annual row fallback (missing prior fiscal period)."
+        )
+        return i0, c0, b0, b1
+
+    tw.append(
+        "Prior-year balance sheet unavailable for ΔNWC; using same annual balance row twice."
+    )
+    b1 = b0
+    return i0, c0, b0, b1
+
+
+def _last_monthly_close_on_or_before(bars: list[PriceBar], window_end: Date) -> float | None:
+    eligible = [b for b in bars if b.date <= window_end]
+    if not eligible:
+        return None
+    last_bar = max(eligible, key=lambda b: b.date.isoformat())
+    return float(last_bar.close)
+
+
 class ValuationService:
     async def run(
         self,
@@ -85,10 +194,23 @@ class ValuationService:
         rows: list[TickerValuationBlock] = []
         sw: list[str] = []
         sources_seen: set[str] = set()
-        as_of = datetime.now(UTC)
+        anchor: Date | None = request.as_of
+        window_end: Date | None = (
+            last_trading_day_on_or_before(anchor) if anchor is not None else None
+        )
+        valuation_ts = (
+            datetime.combine(window_end, datetime.min.time(), tzinfo=UTC)
+            if window_end is not None
+            else datetime.now(UTC)
+        )
 
         try:
-            spy_hist = await data_service.get_historical("SPY", frequency=ReturnFrequency.MONTHLY, lookback_years=10)
+            spy_hist = await data_service.get_historical(
+                "SPY",
+                frequency=ReturnFrequency.MONTHLY,
+                lookback_years=10,
+                as_of=anchor,
+            )
             spy_bars = sorted(spy_hist.bars, key=lambda b: b.date.isoformat())
         except Exception as e:
             sw.append(f"Failed to fetch SPY benchmark for beta: {e}")
@@ -123,9 +245,9 @@ class ValuationService:
                 )
                 continue
 
-            i0 = ann_i[0]
-            b0, b1 = ann_b[0], ann_b[1] if len(ann_b) > 1 else ann_b[0]
-            c0 = ann_c[0]
+            i0, c0, b0, b1 = select_annual_reports_as_of(
+                ann_i, ann_b, ann_c, window_end, tw
+            )
 
             financial_unsafe = skip_ebit_based_fcff(t, ov, i0, b0)
             if financial_unsafe:
@@ -185,7 +307,12 @@ class ValuationService:
             calculated_beta = None
 
             try:
-                hist = await data_service.get_historical(t, frequency=ReturnFrequency.MONTHLY, lookback_years=10)
+                hist = await data_service.get_historical(
+                    t,
+                    frequency=ReturnFrequency.MONTHLY,
+                    lookback_years=10,
+                    as_of=anchor,
+                )
                 historical_prices = sorted(hist.bars, key=lambda b: b.date.isoformat())
                 if historical_prices:
                     if spy_bars:
@@ -222,8 +349,39 @@ class ValuationService:
             except Exception as e:
                 tw.append(f"Failed to fetch 10y historical prices: {e}")
 
-            # Use calculated beta if available, fallback to Yahoo overview beta
-            beta = calculated_beta if calculated_beta is not None else _num(ov, "Beta")
+            ov_inputs: dict[str, Any] = dict(ov)
+            if anchor is not None and window_end is not None:
+                ov_inputs.pop("Beta", None)
+                tw.append(
+                    "Historical as-of mode: fiscal statements use annual periods ending on or before "
+                    "the NYSE window end; Yahoo overview fields default to live snapshot unless overridden."
+                )
+                if historical_prices:
+                    px_hist = _last_monthly_close_on_or_before(historical_prices, window_end)
+                    if px_hist is not None:
+                        ov_inputs["currentPrice"] = str(px_hist)
+                        ov_inputs["previousClose"] = str(px_hist)
+                        sh_mc = _num(ov, "SharesOutstanding", "sharesOutstanding")
+                        if sh_mc is not None and sh_mc > 0:
+                            mc = px_hist * sh_mc
+                            ov_inputs["marketCap"] = str(mc)
+                            ov_inputs["MarketCapitalization"] = str(mc)
+                            tw.append(
+                                "Historical mode: market cap proxied as last monthly close "
+                                "(≤ window end) × shares outstanding from overview."
+                            )
+
+            # Use calculated beta if available, fallback to Yahoo overview beta (stripped when anchored)
+            beta = calculated_beta if calculated_beta is not None else _num(ov_inputs, "Beta")
+            if (
+                anchor is not None
+                and calculated_beta is None
+                and _num(ov, "Beta") is not None
+            ):
+                tw.append(
+                    "Historical mode: Yahoo overview beta omitted; regression beta unavailable — "
+                    "using CAPM fallback chain without live overview beta."
+                )
             if beta is None:
                 beta = 1.0
                 tw.append("Beta missing (and 10y calc failed); using 1.0 for CAPM k_e")
@@ -237,7 +395,7 @@ class ValuationService:
             weight_of_debt: float | None = None
             calculated_wacc: float | None = None
 
-            market_cap = _num(ov, "marketCap", "MarketCapitalization")
+            market_cap = _num(ov_inputs, "marketCap", "MarketCapitalization")
             if market_cap is not None and market_cap > 0:
                 e_val = market_cap
                 d_val = debt0 if debt0 is not None else 0.0
@@ -262,14 +420,18 @@ class ValuationService:
                     sw.append(f"{t}: WACC not set and market cap unavailable/no debt; using k_e ({wacc}) for FCFF value")
 
             # Calculate sustainable growth rate early for dynamic defaults
-            dps = _num(ov, "DividendPerShare", "dividendPerShare")
-            earnings_per_share = _num(ov, "trailingEps", "EPS") or _num(i0, "dilutedEPS") or _num(i0, "basicEPS")
-            roe = _num(ov, "returnOnEquity", "ReturnOnEquityTTM")
+            dps = _num(ov_inputs, "DividendPerShare", "dividendPerShare")
+            earnings_per_share = (
+                _num(ov_inputs, "trailingEps", "EPS")
+                or _num(i0, "dilutedEPS")
+                or _num(i0, "basicEPS")
+            )
+            roe = _num(ov_inputs, "returnOnEquity", "ReturnOnEquityTTM")
             if roe is None and _num(i0, "netIncome") and _num(b0, "totalStockholderEquity"):
                 try: roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
                 except ZeroDivisionError: pass
 
-            payout_ratio = _num(ov, "payoutRatio", "PayoutRatio")
+            payout_ratio = _num(ov_inputs, "payoutRatio", "PayoutRatio")
             if payout_ratio is None and dps is not None and earnings_per_share and earnings_per_share > 0:
                 payout_ratio = float(dps) / earnings_per_share
 
@@ -306,7 +468,7 @@ class ValuationService:
                 except ValueError as exc:
                     tw.append(f"FCFE value: {exc}")
 
-            sh = _num(ov, "SharesOutstanding", "sharesOutstanding")
+            sh = _num(ov_inputs, "SharesOutstanding", "sharesOutstanding")
             ddm_g: float | None = None
             ddm2: float | None = None
             
@@ -318,7 +480,7 @@ class ValuationService:
                 try:
                     d1 = float(dps) * (1.0 + g_div)
                     ddm_g = ddm_gordon(d1, k_e, g_div)
-                    dy = _dividend_yield_decimal(ov)
+                    dy = _dividend_yield_decimal(ov_inputs)
                     if dy is not None and dy < 0.01:
                         tw.append(
                             "Gordon DDM: very low dividend yield from overview — model reflects "
@@ -341,7 +503,7 @@ class ValuationService:
                         g2 = request.ddm_two_stage.g2
                         n_ = int(request.ddm_two_stage.n_periods)
                     else:
-                        eps_growth = _num(ov, "earningsGrowth")
+                        eps_growth = _num(ov_inputs, "earningsGrowth")
                         g1 = eps_growth if eps_growth is not None else (sustainable_growth_rate if sustainable_growth_rate is not None else 0.05)
                         g2 = 0.025
                         n_ = 5
@@ -366,52 +528,58 @@ class ValuationService:
                 fcfe_value_per_share = None
 
             # Earnings and Cash Flow Analysis
-            gross_margin = _num(ov, "grossMargins")
+            gross_margin = _num(ov_inputs, "grossMargins")
             if gross_margin is None and _num(i0, "grossProfit") and _num(i0, "totalRevenue"):
                 try: gross_margin = _num(i0, "grossProfit") / _num(i0, "totalRevenue")
                 except ZeroDivisionError: pass
             
-            operating_margin = _num(ov, "operatingMargins", "OperatingMarginTTM")
+            operating_margin = _num(ov_inputs, "operatingMargins", "OperatingMarginTTM")
             if operating_margin is None and ebit is not None and _num(i0, "totalRevenue"):
                 try: operating_margin = ebit / _num(i0, "totalRevenue")
                 except ZeroDivisionError: pass
 
-            roa = _num(ov, "returnOnAssets", "ReturnOnAssetsTTM")
+            roa = _num(ov_inputs, "returnOnAssets", "ReturnOnAssetsTTM")
             if roa is None and _num(i0, "netIncome") and _num(b0, "totalAssets"):
                 try: roa = _num(i0, "netIncome") / _num(b0, "totalAssets")
                 except ZeroDivisionError: pass
 
-            roe = _num(ov, "returnOnEquity", "ReturnOnEquityTTM")
+            roe = _num(ov_inputs, "returnOnEquity", "ReturnOnEquityTTM")
             if roe is None and _num(i0, "netIncome") and _num(b0, "totalStockholderEquity"):
                 try: roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
                 except ZeroDivisionError: pass
 
-            book_value_per_share = _num(ov, "bookValue", "BookValue")
-            earnings_per_share = _num(ov, "trailingEps", "EPS") or _num(i0, "dilutedEPS") or _num(i0, "basicEPS")
+            book_value_per_share = _num(ov_inputs, "bookValue", "BookValue")
+            earnings_per_share = (
+                _num(ov_inputs, "trailingEps", "EPS")
+                or _num(i0, "dilutedEPS")
+                or _num(i0, "basicEPS")
+            )
             
             cash_flow_per_share = None
             op_cf = _num(c0, "operatingCashFlow", "operatingCashflow")
             if op_cf is not None and sh is not None and sh > 0:
                 cash_flow_per_share = op_cf / sh
 
-            price = _num(ov, "currentPrice", "previousClose", "Price")
+            price = _num(ov_inputs, "currentPrice", "previousClose", "Price")
             
-            price_to_book = _num(ov, "priceToBook", "PriceToBookRatio")
+            price_to_book = _num(ov_inputs, "priceToBook", "PriceToBookRatio")
             if price_to_book is None and price is not None and book_value_per_share and book_value_per_share > 0:
                 price_to_book = price / book_value_per_share
 
-            price_to_earnings = _num(ov, "trailingPE", "PERatio")
+            price_to_earnings = _num(ov_inputs, "trailingPE", "PERatio")
             if price_to_earnings is None and price is not None and earnings_per_share and earnings_per_share > 0:
                 price_to_earnings = price / earnings_per_share
 
             price_to_cash_flow = None
-            market_cap = _num(ov, "marketCap", "MarketCapitalization")
+            market_cap = _num(ov_inputs, "marketCap", "MarketCapitalization")
             if market_cap is not None and op_cf is not None and op_cf > 0:
                 price_to_cash_flow = market_cap / op_cf
             elif price is not None and cash_flow_per_share and cash_flow_per_share > 0:
                 price_to_cash_flow = price / cash_flow_per_share
 
-            historical_growth_rate = _num(ov, "earningsQuarterlyGrowth", "QuarterlyEarningsGrowthYOY")
+            historical_growth_rate = _num(
+                ov_inputs, "earningsQuarterlyGrowth", "QuarterlyEarningsGrowthYOY"
+            )
 
             rows.append(
                 TickerValuationBlock(
@@ -451,7 +619,7 @@ class ValuationService:
 
         return (
             ValuationResult(
-                as_of=as_of,
+                as_of=valuation_ts,
                 per_ticker=rows,
                 data_source=source,
                 warnings=sw,
