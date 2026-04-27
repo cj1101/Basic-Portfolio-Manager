@@ -80,7 +80,7 @@ def geometric_returns(
 ) -> NDArray[np.float64]:
     """Annualized geometric mean per column."""
     a = _require_2d_returns(returns)
-    # Add 1 to all returns, multiply them together across time, 
+    # Add 1 to all returns, multiply them together across time,
     # raise to the power of (annualization_factor / N), and subtract 1
     n_periods = a.shape[0]
     compound_returns = np.prod(1 + a, axis=0)

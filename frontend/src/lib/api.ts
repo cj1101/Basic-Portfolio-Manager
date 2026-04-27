@@ -312,11 +312,18 @@ export async function exportPortfolio(
 
   if (!response.ok) {
     const body = await parseJsonSafely(response);
-    const envelope = (body && typeof body === "object" ? body : {}) as any;
+    const envelope = (body && typeof body === "object" ? body : {}) as {
+      code?: string;
+      message?: string;
+      details?: Record<string, unknown>;
+    };
     throw new ApiError({
-      code: envelope.code ?? "INTERNAL",
-      message: envelope.message ?? `Export failed with status ${response.status}`,
+      code: (envelope.code as ErrorCode | undefined) ?? "INTERNAL",
+      message:
+        envelope.message ?? `Export failed with status ${response.status}`,
+      details: envelope.details,
       status: response.status,
+      retryAfterSeconds: parseRetryAfter(response.headers.get("Retry-After")),
     });
   }
 
