@@ -137,7 +137,9 @@ def select_annual_reports_as_of(
     i0 = best_stmt(ann_i, "income")
     fd_i = _parse_fiscal_end(i0)
 
-    def match_or_best(rows: list[dict[str, Any]], label: str, preferred_fd: Date | None) -> dict[str, Any]:
+    def match_or_best(
+        rows: list[dict[str, Any]], label: str, preferred_fd: Date | None
+    ) -> dict[str, Any]:
         if preferred_fd is None:
             return best_stmt(rows, label)
         for r in rows:
@@ -172,9 +174,7 @@ def select_annual_reports_as_of(
         )
         return i0, c0, b0, b1
 
-    tw.append(
-        "Prior-year balance sheet unavailable for ΔNWC; using same annual balance row twice."
-    )
+    tw.append("Prior-year balance sheet unavailable for ΔNWC; using same annual balance row twice.")
     b1 = b0
     return i0, c0, b0, b1
 
@@ -249,9 +249,7 @@ class ValuationService:
                 )
                 continue
 
-            i0, c0, b0, b1 = select_annual_reports_as_of(
-                ann_i, ann_b, ann_c, window_end, tw
-            )
+            i0, c0, b0, b1 = select_annual_reports_as_of(ann_i, ann_b, ann_c, window_end, tw)
 
             financial_unsafe = skip_ebit_based_fcff(t, ov, i0, b0)
             if financial_unsafe:
@@ -378,11 +376,7 @@ class ValuationService:
 
             # Use calculated beta if available, fallback to Yahoo overview beta (stripped when anchored)
             beta = calculated_beta if calculated_beta is not None else _num(ov_inputs, "Beta")
-            if (
-                anchor is not None
-                and calculated_beta is None
-                and _num(ov, "Beta") is not None
-            ):
+            if anchor is not None and calculated_beta is None and _num(ov, "Beta") is not None:
                 tw.append(
                     "Historical mode: Yahoo overview beta omitted; regression beta unavailable — "
                     "using CAPM fallback chain without live overview beta."
@@ -411,7 +405,9 @@ class ValuationService:
 
                 cost_of_debt = int_exp / d_val if d_val > 0 and int_exp > 0 else 0.0
 
-                calculated_wacc = (weight_of_equity * k_e) + (weight_of_debt * cost_of_debt * (1 - t_rate))
+                calculated_wacc = (weight_of_equity * k_e) + (
+                    weight_of_debt * cost_of_debt * (1 - t_rate)
+                )
             else:
                 calculated_wacc = k_e
 
@@ -419,7 +415,9 @@ class ValuationService:
             if wacc is None:
                 wacc = calculated_wacc
                 if wacc == k_e:
-                    sw.append(f"{t}: WACC not set and market cap unavailable/no debt; using k_e ({wacc}) for FCFF value")
+                    sw.append(
+                        f"{t}: WACC not set and market cap unavailable/no debt; using k_e ({wacc}) for FCFF value"
+                    )
 
             # Calculate sustainable growth rate early for dynamic defaults
             dps = _num(ov_inputs, "DividendPerShare", "dividendPerShare")
@@ -434,7 +432,12 @@ class ValuationService:
                     roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
 
             payout_ratio = _num(ov_inputs, "payoutRatio", "PayoutRatio")
-            if payout_ratio is None and dps is not None and earnings_per_share and earnings_per_share > 0:
+            if (
+                payout_ratio is None
+                and dps is not None
+                and earnings_per_share
+                and earnings_per_share > 0
+            ):
                 payout_ratio = float(dps) / earnings_per_share
 
             sustainable_growth_rate = None
@@ -444,7 +447,7 @@ class ValuationService:
             g_f = request.fcff_growth
             if g_f is None:
                 g_f = sustainable_growth_rate if sustainable_growth_rate is not None else 0.02
-            
+
             g_t = request.fcff_terminal_growth
             if g_t is None:
                 g_t = 0.025
@@ -473,11 +476,11 @@ class ValuationService:
             sh = _num(ov_inputs, "SharesOutstanding", "sharesOutstanding")
             ddm_g: float | None = None
             ddm2: float | None = None
-            
+
             g_div = request.ddm_gordon_g
             if g_div is None:
                 g_div = sustainable_growth_rate if sustainable_growth_rate is not None else 0.02
-            
+
             if dps is not None and g_div is not None and k_e > g_div:
                 try:
                     d1 = float(dps) * (1.0 + g_div)
@@ -497,7 +500,7 @@ class ValuationService:
                     tw.append(f"Gordon DDM: {exc}")
             elif dps is not None and g_div is not None:
                 tw.append("Gordon DDM skipped: cost of equity must exceed dividend growth")
-            
+
             if dps is not None and k_e > 0:
                 try:
                     if request.ddm_two_stage is not None:
@@ -506,7 +509,15 @@ class ValuationService:
                         n_ = int(request.ddm_two_stage.n_periods)
                     else:
                         eps_growth = _num(ov_inputs, "earningsGrowth")
-                        g1 = eps_growth if eps_growth is not None else (sustainable_growth_rate if sustainable_growth_rate is not None else 0.05)
+                        g1 = (
+                            eps_growth
+                            if eps_growth is not None
+                            else (
+                                sustainable_growth_rate
+                                if sustainable_growth_rate is not None
+                                else 0.05
+                            )
+                        )
                         g2 = 0.025
                         n_ = 5
 
@@ -556,20 +567,30 @@ class ValuationService:
                 or _num(i0, "dilutedEPS")
                 or _num(i0, "basicEPS")
             )
-            
+
             cash_flow_per_share = None
             op_cf = _num(c0, "operatingCashFlow", "operatingCashflow")
             if op_cf is not None and sh is not None and sh > 0:
                 cash_flow_per_share = op_cf / sh
 
             price = _num(ov_inputs, "currentPrice", "previousClose", "Price")
-            
+
             price_to_book = _num(ov_inputs, "priceToBook", "PriceToBookRatio")
-            if price_to_book is None and price is not None and book_value_per_share and book_value_per_share > 0:
+            if (
+                price_to_book is None
+                and price is not None
+                and book_value_per_share
+                and book_value_per_share > 0
+            ):
                 price_to_book = price / book_value_per_share
 
             price_to_earnings = _num(ov_inputs, "trailingPE", "PERatio")
-            if price_to_earnings is None and price is not None and earnings_per_share and earnings_per_share > 0:
+            if (
+                price_to_earnings is None
+                and price is not None
+                and earnings_per_share
+                and earnings_per_share > 0
+            ):
                 price_to_earnings = price / earnings_per_share
 
             price_to_cash_flow = None
