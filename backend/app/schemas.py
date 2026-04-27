@@ -266,6 +266,33 @@ class TickerValuationBlock(_CamelModel):
     ddm_gordon: float | None
     ddm_two_stage: float | None
     cost_of_equity: float
+    cost_of_debt: float | None = None
+    weight_of_equity: float | None = None
+    weight_of_debt: float | None = None
+    wacc: float | None = None
+
+    # Common Stock Valuation & Growth estimates
+    historical_growth_rate: float | None = None
+    sustainable_growth_rate: float | None = None
+    roe: float | None = None
+
+    # Earnings & Cash Flow Analysis
+    gross_margin: float | None = None
+    operating_margin: float | None = None
+    roa: float | None = None
+    book_value_per_share: float | None = None
+    earnings_per_share: float | None = None
+    cash_flow_per_share: float | None = None
+    price_to_book: float | None = None
+    price_to_earnings: float | None = None
+    price_to_cash_flow: float | None = None
+
+    # Custom Historical Metrics & Charting
+    calculated_beta: float | None = None
+    historical_return: float | None = None
+    historical_volatility: float | None = None
+    historical_prices: list[PriceBar] | None = None
+
     warnings: list[str] = Field(default_factory=list)
 
 
@@ -293,6 +320,22 @@ class UpdateApiKeyResponse(_CamelModel):
     requires_confirmation: bool
     confirmation_type: Literal["overwrite", "create"] | None = None
     message: str
+
+
+class ExportRequest(_CamelModel):
+    tickers: list[Ticker] = Field(min_length=1, max_length=30)
+    risk_profile: RiskProfile
+    return_frequency: ReturnFrequency = ReturnFrequency.DAILY
+    lookback_years: int = Field(default=5, ge=1, le=20)
+    allow_short: bool = True
+    allow_leverage: bool = True
+    # Valuation specific
+    wacc: float | None = None
+    fcff_growth: float | None = None
+    fcff_terminal_growth: float | None = None
+    cost_of_equity_override: float | None = None
+    ddm_gordon_g: float | None = None
+    ddm_two_stage: DdmTwoStageParams | None = None
 
 
 __all__ = [
@@ -337,4 +380,5 @@ __all__ = [
     "UpdateApiKeyResponse",
     "ValuationRequest",
     "ValuationResult",
+    "ExportRequest",
 ]

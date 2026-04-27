@@ -25,6 +25,9 @@ import type {
   OptimizationResult,
   ValuationRequest,
   ValuationResult,
+  HistoricalResponse,
+  ReturnFrequency,
+  ExportRequest,
 } from "@/types/contracts";
 
 const DEFAULT_BASE = "/api";
@@ -194,6 +197,20 @@ export function getRiskFreeRate(init?: RequestInit): Promise<RiskFreeRateRespons
   return request<RiskFreeRateResponse>("/risk-free-rate", init);
 }
 
+export function getHistorical(
+  ticker: string,
+  frequency: ReturnFrequency = "daily",
+  years: number = 3,
+  init?: RequestInit,
+): Promise<HistoricalResponse> {
+  const params = new URLSearchParams({
+    ticker,
+    frequency,
+    years: years.toString(),
+  });
+  return request<HistoricalResponse>(`/historical?${params.toString()}`, init);
+}
+
 /**
  * Chat (Agent E)
  * ----------------
@@ -270,4 +287,34 @@ export function patchApiKey(
     method: "PATCH",
     body: JSON.stringify(body),
   });
+}
+
+export async function exportPortfolio(
+  body: ExportRequest,
+  init?: RequestInit,
+): Promise<Blob> {
+  const base = resolveBaseUrl();
+  const url = `${base}/export`;
+
+  const headers = new Headers(init?.headers ?? {});
+  headers.set("Content-Type", JSON_CONTENT_TYPE);
+
+  const response = await fetch(url, {
+    ...init,
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const body = await parseJsonSafely(response);
+    const envelope = (body && typeof body === "object" ? body : {}) as any;
+    throw new ApiError({
+      code: envelope.code ?? "INTERNAL",
+      message: envelope.message ?? `Export failed with status ${response.status}`,
+      status: response.status,
+    });
+  }
+
+  return response.blob();
 }

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from app.api.chat import router as chat_router
 from app.api.course import router as course_router
 from app.api.deps import get_service
+from app.api.export import router as export_router
 from app.api.llm import router as llm_router
 from app.api.optimize import router as optimize_router
 from app.api.settings import router as settings_router
@@ -79,6 +80,7 @@ router.include_router(course_router)
 router.include_router(chat_router)
 router.include_router(llm_router)
 router.include_router(settings_router)
+router.include_router(export_router)
 
 
 __all__ = ["router"]

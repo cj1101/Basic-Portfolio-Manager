@@ -42,7 +42,7 @@ export function CALChart({ orp, riskFreeRate, complete, height = 340 }: CALChart
             domain={[0, "dataMax + 0.02"]}
             tickFormatter={(v: number) => pct(v, 0)}
             label={{
-              value: "Standard Deviation σ (annualized)",
+              value: "Volatility (σ) (annualized)",
               position: "insideBottom",
               offset: -10,
               style: { fill: "#475569", fontSize: 12 },
@@ -56,7 +56,7 @@ export function CALChart({ orp, riskFreeRate, complete, height = 340 }: CALChart
             domain={[0, "dataMax + 0.05"]}
             tickFormatter={(v: number) => pct(v, 0)}
             label={{
-              value: "Expected Return E(r)",
+              value: "Expected Rate of Return (E(r))",
               angle: -90,
               position: "insideLeft",
               offset: 10,
@@ -92,7 +92,7 @@ export function CALChart({ orp, riskFreeRate, complete, height = 340 }: CALChart
             fill="#94a3b8"
             stroke="#fff"
             strokeWidth={2}
-            label={{ value: "r_f", position: "left", fill: "#64748b", fontSize: 11 }}
+            label={{ value: "Risk-Free Rate (r_f)", position: "left", fill: "#64748b", fontSize: 11 }}
           />
           <ReferenceDot
             x={orp.stdDev}

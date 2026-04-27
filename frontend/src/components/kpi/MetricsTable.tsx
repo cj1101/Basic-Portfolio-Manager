@@ -12,12 +12,12 @@ export interface MetricsTableProps {
 
 const columns = [
   { key: "ticker", label: "Ticker", align: "left", tooltip: undefined },
-  { key: "expectedReturn", label: "E(r)", align: "right", tooltip: metricTooltip("stockExpectedReturn") },
-  { key: "stdDev", label: "σ", align: "right", tooltip: metricTooltip("stockStdDev") },
-  { key: "beta", label: "β", align: "right", tooltip: metricTooltip("beta") },
-  { key: "alpha", label: "α", align: "right", tooltip: metricTooltip("alpha") },
-  { key: "firmSpecificVar", label: "Firm-specific var", align: "right", tooltip: metricTooltip("firmSpecificVar") },
-  { key: "nObservations", label: "N obs", align: "right", tooltip: metricTooltip("nObservations") },
+  { key: "expectedReturn", label: "Expected Asset Rate of Return (E(r_i))", align: "right", tooltip: metricTooltip("stockExpectedReturn") },
+  { key: "stdDev", label: "Volatility (σ)", align: "right", tooltip: metricTooltip("stockStdDev") },
+  { key: "beta", label: "Beta (β)", align: "right", tooltip: metricTooltip("beta") },
+  { key: "alpha", label: "Alpha (α)", align: "right", tooltip: metricTooltip("alpha") },
+  { key: "firmSpecificVar", label: "Idiosyncratic Variance (sigma^2(e_i))", align: "right", tooltip: metricTooltip("firmSpecificVar") },
+  { key: "nObservations", label: "N Observations", align: "right", tooltip: metricTooltip("nObservations") },
 ] as const;
 
 export function MetricsTable({ stocks, weights, caption }: MetricsTableProps) {
@@ -54,7 +54,7 @@ export function MetricsTable({ stocks, weights, caption }: MetricsTableProps) {
                 <th scope="col" className="px-4 py-2 text-right font-medium">
                   <Tooltip label={metricTooltip("orpWeight")}>
                     <span className="cursor-help underline decoration-dotted underline-offset-2">
-                      ORP weight
+                      Optimal Risky Portfolio Weight (w_i)
                     </span>
                   </Tooltip>
                 </th>

@@ -65,7 +65,7 @@ export function OverviewTab() {
           <KpiCard
             label="Volatility (σ)"
             value={pct(complete.stdDev, 2)}
-            sublabel={`ORP σ = ${pct(orp.stdDev, 2)}`}
+            sublabel={`Optimal Risky Portfolio Volatility (sigma_ORP) = ${pct(orp.stdDev, 2)}`}
             labelTooltip={metricTooltip("completeStdDev", {
               value: complete.stdDev,
               orpStdDev: orp.stdDev,
@@ -75,7 +75,7 @@ export function OverviewTab() {
           <KpiCard
             label="Weight in ORP"
             value={pct(complete.yStar, 1)}
-            sublabel={complete.leverageUsed ? "Leverage engaged (y* > 100%)" : "No leverage"}
+            sublabel={complete.leverageUsed ? "Leverage engaged (Optimal Risky Allocation Weight (y*) > 100%)" : "No leverage"}
             labelTooltip={metricTooltip("yStar", {
               value: complete.yStar,
               riskFreeRate,
@@ -88,7 +88,7 @@ export function OverviewTab() {
           <KpiCard
             label="ORP Sharpe ratio"
             value={decimals(orp.sharpe, 3)}
-            sublabel={`r_f = ${pct(riskFreeRate, 2)}`}
+            sublabel={`Risk-Free Rate (r_f) = ${pct(riskFreeRate, 2)}`}
             labelTooltip={metricTooltip("orpSharpe", { value: orp.sharpe, riskFreeRate })}
             icon={<Gauge size={16} />}
           />
@@ -130,20 +130,20 @@ export function OverviewTab() {
             <p className="mt-1 text-sm leading-relaxed text-slate-600">
               <strong>{topStock.ticker}</strong> is the top alpha contributor with{" "}
               <Tooltip label={metricTooltip("alpha", { value: topStock.alpha })}>
-                <span className="cursor-help underline decoration-dotted underline-offset-2">α</span>
+                <span className="cursor-help underline decoration-dotted underline-offset-2">Alpha (α)</span>
               </Tooltip>{" "}
               ={" "}
               <span className="font-semibold text-emerald-600">{signedPct(topStock.alpha)}</span>{" "}
               and{" "}
               <Tooltip label={metricTooltip("beta", { value: topStock.beta })}>
-                <span className="cursor-help underline decoration-dotted underline-offset-2">β</span>
+                <span className="cursor-help underline decoration-dotted underline-offset-2">Beta (β)</span>
               </Tooltip>{" "}
               = {decimals(topStock.beta, 2)}. At your current risk aversion the model
               allocates <strong>{pct(complete.yStar * (orp.weights[topStock.ticker] ?? 0), 2)}</strong> of
               the portfolio to it. The market benchmark is expected to return{" "}
               {pct(market.expectedReturn, 2)} with{" "}
               <Tooltip label={metricTooltip("stdDev", { value: market.stdDev })}>
-                <span className="cursor-help underline decoration-dotted underline-offset-2">σ</span>
+                <span className="cursor-help underline decoration-dotted underline-offset-2">Volatility (σ)</span>
               </Tooltip>{" "}
               = {pct(market.stdDev, 2)}.
             </p>

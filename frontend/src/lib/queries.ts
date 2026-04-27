@@ -12,6 +12,7 @@ import {
   useMutation,
   useQuery,
   useQueryClient,
+  useQueries,
   type UseMutationResult,
   type UseQueryResult,
 } from "@tanstack/react-query";
@@ -25,6 +26,7 @@ import type {
   UpdateApiKeyResponse,
   OptimizationRequest,
   OptimizationResult,
+  ReturnFrequency,
 } from "@/types/contracts";
 import {
   ApiError,
@@ -36,6 +38,7 @@ import {
   patchApiKey,
   postChatSessionMessage,
   postOptimize,
+  getHistorical,
   type RiskFreeRateResponse,
 } from "./api";
 
@@ -115,6 +118,26 @@ export function useRiskFreeRate(): UseQueryResult<RiskFreeRateResponse, ApiError
     queryFn: ({ signal }) => getRiskFreeRate({ signal }),
     staleTime: 5 * 60_000,
     retry: 1,
+  });
+}
+
+export function useHistoricalBulk(
+  tickers: string[],
+  frequency: ReturnFrequency = "daily",
+  years: number = 3,
+) {
+  return useQueries({
+    queries: tickers.map((ticker) => ({
+      queryKey: ["historical", ticker, frequency, years],
+      queryFn: ({ signal }: { signal: AbortSignal }) =>
+        getHistorical(ticker, frequency, years, { signal }),
+      staleTime: 5 * 60_000,
+      retry: (count: number, error: unknown) => {
+        if (!(error instanceof ApiError)) return count < 1;
+        if (NON_RETRIABLE_CODES.has(error.code)) return false;
+        return count < 1;
+      },
+    })),
   });
 }
 

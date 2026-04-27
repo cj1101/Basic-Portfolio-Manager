@@ -43,7 +43,7 @@ export function EfficientFrontierTab() {
             </span>
           </Tooltip>
           <p className="stat-value text-brand-700">{pct(orp.expectedReturn, 2)}</p>
-          <p className="text-xs text-slate-500">E(r_ORP) = Σ w_i · E(r_i)</p>
+          <p className="text-xs text-slate-500">Expected Optimal Risky Portfolio Rate of Return (E(r_ORP)) = Σ Optimal Risky Portfolio Weight (w_i) · Expected Asset Rate of Return (E(r_i))</p>
         </article>
         <article className="card p-5">
           <Tooltip label={metricTooltip("orpVolatility", { value: orp.stdDev })}>
@@ -52,7 +52,7 @@ export function EfficientFrontierTab() {
             </span>
           </Tooltip>
           <p className="stat-value">{pct(orp.stdDev, 2)}</p>
-          <p className="text-xs text-slate-500">σ_ORP = sqrt(wᵀ Σ w)</p>
+          <p className="text-xs text-slate-500">Optimal Risky Portfolio Volatility (sigma_ORP) = sqrt(wᵀ Σ w)</p>
         </article>
         <article className="card p-5 border-brand-200 bg-brand-50/40">
           <Tooltip label={metricTooltip("orpSharpe", { value: orp.sharpe })}>
@@ -64,7 +64,7 @@ export function EfficientFrontierTab() {
             {decimals(orp.sharpe, 3)}
             <TrendingUp className="ml-1 inline align-middle text-emerald-500" size={20} />
           </p>
-          <p className="text-xs text-slate-500">(E(r_ORP) − r_f) / σ_ORP</p>
+          <p className="text-xs text-slate-500">(Expected Optimal Risky Portfolio Rate of Return (E(r_ORP)) − Risk-Free Rate (r_f)) / Optimal Risky Portfolio Volatility (sigma_ORP)</p>
         </article>
       </section>
 

@@ -1,5 +1,13 @@
 import { useCallback, useState } from "react";
 import { Loader2 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { usePortfolio } from "@/state/portfolioContext";
 import { postAnalyticsPerformance, postValuation, ApiError } from "@/lib/api";
 import type {
@@ -148,7 +156,7 @@ export function CourseMetricsTab() {
                 <dd>{fmtPct(analytics.orp.treynor, 2)}</dd>
               </div>
               <div>
-                <dt className="text-slate-500">Jensen &alpha; (annualized)</dt>
+                <dt className="text-slate-500">Jensen Alpha (α) (annualized)</dt>
                 <dd>{fmtPct(analytics.orp.jensenAlpha, 2)}</dd>
               </div>
             </dl>
@@ -157,7 +165,7 @@ export function CourseMetricsTab() {
             <h3 className="font-medium text-slate-800">SIM variance (ORP)</h3>
             <dl className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
               <div>
-                <dt className="text-slate-500">Total &sigma;&sup2;</dt>
+                <dt className="text-slate-500">Total Variance (sigma^2)</dt>
                 <dd>{analytics.orp.totalVariance.toFixed(6)}</dd>
               </div>
               <div>
@@ -179,7 +187,7 @@ export function CourseMetricsTab() {
                   <dd>{fmtPct(analytics.complete.treynor, 2)}</dd>
                 </div>
                 <div>
-                  <dt className="text-slate-500">Jensen &alpha; (y &times; ORP &alpha;)</dt>
+                  <dt className="text-slate-500">Jensen Alpha (α) (Optimal Risky Allocation Weight (y*) &times; Optimal Risky Portfolio Alpha (α))</dt>
                   <dd>{fmtPct(analytics.complete.jensenAlpha, 2)}</dd>
                 </div>
               </dl>
@@ -216,9 +224,9 @@ export function CourseMetricsTab() {
                   <div key={f.ticker} className="rounded border border-slate-200 bg-white p-3">
                     <p className="font-mono text-sm font-medium">{f.ticker}</p>
                     <p className="text-xs text-slate-600">
-                      E(r) FF3: {fmtPct(f.expectedReturnFf3, 2)} &middot; E(r) CAPM (monthly OLS):{" "}
-                      {fmtPct(f.expectedReturnCapm, 2)} &middot; &beta;<sub>SMB</sub> {f.betaSmb.toFixed(3)}{" "}
-                      &middot; &beta;<sub>HML</sub> {f.betaHml.toFixed(3)}
+                      Expected Rate of Return (E(r)) FF3: {fmtPct(f.expectedReturnFf3, 2)} &middot; Expected Rate of Return (E(r)) CAPM (monthly OLS):{" "}
+                      {fmtPct(f.expectedReturnCapm, 2)} &middot; Beta (β)<sub>SMB</sub> {f.betaSmb.toFixed(3)}{" "}
+                      &middot; Beta (β)<sub>HML</sub> {f.betaHml.toFixed(3)}
                     </p>
                   </div>
                 ))}
@@ -231,8 +239,8 @@ export function CourseMetricsTab() {
       <div>
         <h2 className="text-lg font-semibold text-slate-900">Valuation (FCFF, FCFE, DDM)</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Requires <code>ALPHA_VANTAGE_API_KEY</code> and statement endpoints. Defaults: WACC 9%, FCFF
-          growth 2%, Gordon g 3%, two-stage DDM (g1 8%, g2 3%, 5 years).
+          Requires <code>ALPHA_VANTAGE_API_KEY</code> and statement endpoints.
+
         </p>
         <button
           type="button"
@@ -287,6 +295,59 @@ export function CourseMetricsTab() {
                 DDM Gordon: {v.ddmGordon?.toFixed(2) ?? "—"} &middot; two-stage:{" "}
                 {v.ddmTwoStage?.toFixed(2) ?? "—"}
               </p>
+              <div className="mt-2 grid grid-cols-2 gap-4 text-xs sm:grid-cols-4">
+                <div>
+                  <span className="font-semibold">Growth &amp; Returns</span>
+                  <ul className="mt-1 text-slate-600">
+                    <li>Hist. g: {fmtPct(v.historicalGrowthRate, 2)}</li>
+                    <li>SGR: {fmtPct(v.sustainableGrowthRate, 2)}</li>
+                    <li>ROE: {fmtPct(v.roe, 2)}</li>
+                    <li>10y Return: {fmtPct(v.historicalReturn, 2)}</li>
+                    <li>10y Volatility: {fmtPct(v.historicalVolatility, 2)}</li>
+                    <li>Custom Beta (β): {v.calculatedBeta?.toFixed(2) ?? "—"}</li>
+                  </ul>
+                </div>
+                <div>
+                  <span className="font-semibold">Margins</span>
+                  <ul className="mt-1 text-slate-600">
+                    <li>Gross: {fmtPct(v.grossMargin, 2)}</li>
+                    <li>Operating: {fmtPct(v.operatingMargin, 2)}</li>
+                    <li>ROA: {fmtPct(v.roa, 2)}</li>
+                  </ul>
+                </div>
+                <div>
+                  <span className="font-semibold">Per-Share</span>
+                  <ul className="mt-1 text-slate-600">
+                    <li>Book Val: {v.bookValuePerShare?.toFixed(2) ?? "—"}</li>
+                    <li>Earnings: {v.earningsPerShare?.toFixed(2) ?? "—"}</li>
+                    <li>Cash Flow: {v.cashFlowPerShare?.toFixed(2) ?? "—"}</li>
+                  </ul>
+                </div>
+                <div>
+                  <span className="font-semibold">Price Ratios</span>
+                  <ul className="mt-1 text-slate-600">
+                    <li>P/B: {v.priceToBook?.toFixed(2) ?? "—"}</li>
+                    <li>P/E: {v.priceToEarnings?.toFixed(2) ?? "—"}</li>
+                    <li>P/CF: {v.priceToCashFlow?.toFixed(2) ?? "—"}</li>
+                  </ul>
+                </div>
+              </div>
+              {v.historicalPrices && v.historicalPrices.length > 0 ? (
+                <div className="mt-4 h-48 w-full">
+                  <span className="mb-2 block text-xs font-semibold text-slate-800">10-Year Price History (Monthly)</span>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={v.historicalPrices}>
+                      <XAxis dataKey="date" hide />
+                      <YAxis domain={['auto', 'auto']} hide />
+                      <Tooltip
+                        labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
+                        formatter={(val: number) => [`$${val.toFixed(2)}`, "Price"]}
+                      />
+                      <Line type="monotone" dataKey="close" stroke="#0ea5e9" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : null}
               {v.warnings.length > 0 ? (
                 <ul className="mt-1 list-inside list-disc text-xs text-amber-800">
                   {v.warnings.map((w) => (

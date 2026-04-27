@@ -49,7 +49,7 @@ export function SMLChart({ stocks, market, riskFreeRate, height = 340 }: SMLChar
             dataKey="expectedReturn"
             tickFormatter={(v: number) => pct(v, 0)}
             label={{
-              value: "Expected Return E(r)",
+              value: "Expected Rate of Return (E(r))",
               angle: -90,
               position: "insideLeft",
               offset: 10,

@@ -13,6 +13,9 @@ from __future__ import annotations
 
 import math
 
+import numpy as np
+from numpy.typing import NDArray
+
 
 def capm_required_return(
     beta: float,
@@ -23,6 +26,14 @@ def capm_required_return(
     return float(risk_free_rate) + float(beta) * (
         float(market_expected_return) - float(risk_free_rate)
     )
+
+
+def calculate_beta(stock_returns: NDArray[np.float64], market_returns: NDArray[np.float64]) -> float:
+    # Use ddof=1 to match Google Sheets exactly
+    cov_matrix = np.cov(stock_returns, market_returns, ddof=1)
+    covariance = cov_matrix[0, 1]
+    market_variance = np.var(market_returns, ddof=1)
+    return float(covariance / market_variance)
 
 
 def capm_total_expected_return(
@@ -62,6 +73,7 @@ def capm_total_std_dev(
 
 
 __all__ = [
+    "calculate_beta",
     "capm_required_return",
     "capm_systematic_variance",
     "capm_total_expected_return",

@@ -266,7 +266,8 @@ class YahooClient:
         end: Date | None = None,
     ) -> list[dict[str, Any]]:
         end_date = end or datetime.now(UTC).date()
-        start_date = end_date - timedelta(days=lookback_years * 366)
+        # Add ~35 days to lookback to ensure we have a prior price to compute the first return
+        start_date = end_date - timedelta(days=lookback_years * 366 + 35)
 
         def _fetch() -> pd.DataFrame:
             factory = self._factory()

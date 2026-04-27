@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { BrainCircuit, ShieldCheck, Target, AlertTriangle } from "lucide-react";
+import { BrainCircuit, ShieldCheck, Target, AlertTriangle, Download, Loader2 } from "lucide-react";
 import { Badge } from "./ui/Badge";
 import { SettingsButton, SettingsPanel } from "./Settings";
 import { usePortfolio } from "@/state/portfolioContext";
 import { pct } from "@/lib/format";
+import { exportPortfolio } from "@/lib/api";
 
 function riskLabel(A: number): string {
   if (A <= 2) return "Aggressive";
@@ -11,6 +12,57 @@ function riskLabel(A: number): string {
   if (A <= 6) return "Balanced";
   if (A <= 8) return "Conservative";
   return "Very Conservative";
+}
+
+function ExportButton() {
+  const { tickers, returnFrequency, lookbackYears, allowShort, allowLeverage, riskProfile } =
+    usePortfolio();
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    if (tickers.length === 0) return;
+    setExporting(true);
+    try {
+      const blob = await exportPortfolio({
+        tickers,
+        riskProfile,
+        returnFrequency,
+        lookbackYears,
+        allowShort,
+        allowLeverage,
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Portfolio_Analysis_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("Export failed", err);
+      alert("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleExport}
+      disabled={exporting || tickers.length === 0}
+      title="Export all data and calculations to Excel"
+      className="flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      {exporting ? (
+        <Loader2 size={16} className="animate-spin text-brand-600" />
+      ) : (
+        <Download size={16} className="text-brand-600" />
+      )}
+      <span>{exporting ? "Generating Excel..." : "Export .xlsx"}</span>
+    </button>
+  );
 }
 
 export function Header() {
@@ -62,7 +114,10 @@ export function Header() {
               Leverage in use
             </Badge>
           ) : null}
-          <SettingsButton onOpen={() => setSettingsOpen(true)} />
+          <div className="flex items-center gap-2 border-l border-slate-700 pl-2">
+            <ExportButton />
+            <SettingsButton onOpen={() => setSettingsOpen(true)} />
+          </div>
         </div>
       </div>
       {settingsOpen ? <SettingsPanel onClose={() => setSettingsOpen(false)} /> : null}

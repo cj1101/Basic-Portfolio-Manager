@@ -24,11 +24,11 @@ export function AssetAllocationTab() {
           Once we know the ORP and the risk-free rate, choosing a complete portfolio reduces to a
           single number:{" "}
           <Tooltip label={metricTooltip("yStar", { value: complete.yStar })}>
-            <strong className="cursor-help underline decoration-dotted underline-offset-2">y*</strong>
+            <strong className="cursor-help underline decoration-dotted underline-offset-2">Optimal Risky Allocation Weight (y*)</strong>
           </Tooltip>
           , the fraction of your wealth in the ORP. It is set by
           maximizing the mean-variance utility{" "}
-          <code className="font-mono text-xs">U = E(r_C) − ½ · A · σ_C²</code>.
+          <code className="font-mono text-xs">U = Expected Complete Portfolio Rate of Return (E(r_C)) − ½ · Risk Aversion Parameter (A) · Complete Portfolio Volatility (sigma_C)²</code>.
         </p>
       </header>
 
@@ -38,7 +38,7 @@ export function AssetAllocationTab() {
 
       <section className="grid gap-4 md:grid-cols-4">
         <KpiCard
-          label="Weight in ORP (y*)"
+          label="Optimal Risky Allocation Weight (y*)"
           value={pct(complete.yStar, 2)}
           sublabel={`Risk-aversion A = ${riskProfile.riskAversion}`}
           labelTooltip={metricTooltip("yStar", {
@@ -53,11 +53,11 @@ export function AssetAllocationTab() {
         <KpiCard
           label="Weight in risk-free"
           value={pct(complete.weightRiskFree, 2)}
-          sublabel={`r_f = ${pct(riskFreeRate, 2)}`}
+          sublabel={`Risk-Free Rate (r_f) = ${pct(riskFreeRate, 2)}`}
           labelTooltip={metricTooltip("weightRiskFree", { value: complete.weightRiskFree })}
         />
         <KpiCard
-          label="Complete E(r)"
+          label="Expected Complete Portfolio Rate of Return (E(r_C))"
           value={pct(complete.expectedReturn, 2)}
           sublabel={`ORP excess · y* = ${decimals((orp.expectedReturn - riskFreeRate) * complete.yStar, 4)}`}
           labelTooltip={metricTooltip("completeExpectedReturn", {

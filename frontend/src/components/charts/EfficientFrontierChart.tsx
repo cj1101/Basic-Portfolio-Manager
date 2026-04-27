@@ -222,7 +222,7 @@ export function EfficientFrontierChart({
             dataKey="stdDev"
             tickFormatter={(v: number) => pct(v, 0)}
             label={{
-              value: "Standard Deviation σ (annualized)",
+              value: "Volatility (σ) (annualized)",
               position: "insideBottom",
               offset: -10,
               style: { fill: "#475569", fontSize: 12 },
@@ -236,7 +236,7 @@ export function EfficientFrontierChart({
             dataKey="expectedReturn"
             tickFormatter={(v: number) => pct(v, 0)}
             label={{
-              value: "Expected Return E(r)",
+              value: "Expected Rate of Return (E(r))",
               angle: -90,
               position: "insideLeft",
               offset: 10,

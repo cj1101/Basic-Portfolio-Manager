@@ -10,6 +10,7 @@ import { CapmAlphaTab } from "./components/tabs/CapmAlphaTab";
 import { AssetAllocationTab } from "./components/tabs/AssetAllocationTab";
 import { ApisDataTab } from "./components/tabs/ApisDataTab";
 import { CourseMetricsTab } from "./components/tabs/CourseMetricsTab";
+import { TechnicalAnalysisTab } from "./components/tabs/TechnicalAnalysisTab";
 import { ChatShell } from "./components/chat/ChatShell";
 import { ResultBoundary } from "./components/ui/ResultBoundary";
 
@@ -79,6 +80,11 @@ function App() {
           <TabPanel id="course" hidden={active !== "course"}>
             <ResultBoundary>
               <CourseMetricsTab />
+            </ResultBoundary>
+          </TabPanel>
+          <TabPanel id="technical" hidden={active !== "technical"}>
+            <ResultBoundary>
+              <TechnicalAnalysisTab />
             </ResultBoundary>
           </TabPanel>
           <TabPanel id="data" hidden={active !== "data"}>

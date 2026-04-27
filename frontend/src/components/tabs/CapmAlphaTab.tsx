@@ -41,16 +41,16 @@ export function CapmAlphaTab() {
                   Ticker
                 </th>
                 <th scope="col" className="px-4 py-2 text-right font-medium">
-                  Beta β
+                  Beta (β)
                 </th>
                 <th scope="col" className="px-4 py-2 text-right font-medium">
-                  CAPM required E(r)
+                  CAPM Required Rate of Return (E(r))
                 </th>
                 <th scope="col" className="px-4 py-2 text-right font-medium">
-                  Realized E(r)
+                  Realized Rate of Return (E(r))
                 </th>
                 <th scope="col" className="px-4 py-2 text-right font-medium">
-                  Alpha α
+                  Alpha (α)
                 </th>
                 <th scope="col" className="px-4 py-2 text-left font-medium">
                   Assessment

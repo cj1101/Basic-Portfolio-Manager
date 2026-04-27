@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type TabId = "overview" | "frontier" | "capm" | "allocation" | "course" | "data";
+export type TabId = "overview" | "frontier" | "capm" | "allocation" | "course" | "technical" | "data";
 
 export interface TabDefinition {
   id: TabId;
@@ -49,6 +49,12 @@ export const TABS: TabDefinition[] = [
     label: "4. Risk & Valuation",
     shortLabel: "4. Risk & Val",
     Icon: GraduationCap,
+  },
+  {
+    id: "technical",
+    label: "5. Technical Analysis",
+    shortLabel: "Technical",
+    Icon: LineChartIcon,
   },
   {
     id: "data",

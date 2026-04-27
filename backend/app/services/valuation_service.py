@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 from app.data.service import DataService
 from app.errors import InvalidValuationError, ProviderUnavailableError
-from app.schemas import TickerValuationBlock, ValuationRequest, ValuationResult
+from app.schemas import ReturnFrequency, TickerValuationBlock, ValuationRequest, ValuationResult
 from quant.valuation_cashflow import (
     equity_value_from_enterprise_value,
     fcfe_equity_value_perpetuity,
@@ -86,6 +86,13 @@ class ValuationService:
         sw: list[str] = []
         sources_seen: set[str] = set()
         as_of = datetime.now(UTC)
+
+        try:
+            spy_hist = await data_service.get_historical("SPY", frequency=ReturnFrequency.MONTHLY, lookback_years=10)
+            spy_bars = sorted(spy_hist.bars, key=lambda b: b.date.isoformat())
+        except Exception as e:
+            sw.append(f"Failed to fetch SPY benchmark for beta: {e}")
+            spy_bars = []
 
         for raw in request.tickers:
             t = str(raw).upper().strip()
@@ -172,21 +179,111 @@ class ValuationService:
                 fcff = fcff_nopat_depre_capex_deltanwc(ebit, t_rate, depr, capex, delta_nwc)
                 fcfe = fcfe_from_fcff(fcff, int_exp, t_rate, net_borrowing)
 
-            beta = _num(ov, "Beta")
+            historical_prices = None
+            historical_return = None
+            historical_volatility = None
+            calculated_beta = None
+
+            try:
+                hist = await data_service.get_historical(t, frequency=ReturnFrequency.MONTHLY, lookback_years=10)
+                historical_prices = sorted(hist.bars, key=lambda b: b.date.isoformat())
+                if historical_prices:
+                    if spy_bars:
+                        spy_dict = {b.date.isoformat(): b.close for b in spy_bars}
+                        aligned_i = []
+                        aligned_m = []
+                        prev_i = None
+                        prev_m = None
+                        for b in historical_prices:
+                            dstr = b.date.isoformat()
+                            if dstr in spy_dict:
+                                if prev_i is not None and prev_m is not None:
+                                    aligned_i.append((b.close - prev_i) / prev_i)
+                                    aligned_m.append((spy_dict[dstr] - prev_m) / prev_m)
+                                prev_i = b.close
+                                prev_m = spy_dict[dstr]
+                            else:
+                                prev_i = None
+                                prev_m = None
+                        
+                        if len(aligned_i) >= 2:
+                            from quant.sim import single_index_metrics
+                            import numpy as np
+                            try:
+                                sim = single_index_metrics(aligned_i, aligned_m, risk_free_per_period=risk_free_rate/12.0)
+                                calculated_beta = float(sim.beta)
+                            except Exception as e:
+                                tw.append(f"Beta regression failed: {e}")
+                            
+                            arr_i = np.array(aligned_i)
+                            geom_mean = np.prod(1 + arr_i) ** (12.0 / len(arr_i)) - 1.0
+                            historical_return = float(geom_mean)
+                            historical_volatility = float(np.std(arr_i, ddof=1) * np.sqrt(12.0))
+            except Exception as e:
+                tw.append(f"Failed to fetch 10y historical prices: {e}")
+
+            # Use calculated beta if available, fallback to Yahoo overview beta
+            beta = calculated_beta if calculated_beta is not None else _num(ov, "Beta")
             if beta is None:
                 beta = 1.0
-                tw.append("Beta missing; using 1.0 for CAPM k_e")
+                tw.append("Beta missing (and 10y calc failed); using 1.0 for CAPM k_e")
             mrp = 0.05
             k_e = request.cost_of_equity_override
             if k_e is None:
                 k_e = float(risk_free_rate) + float(beta) * mrp
 
+            cost_of_debt: float | None = None
+            weight_of_equity: float | None = None
+            weight_of_debt: float | None = None
+            calculated_wacc: float | None = None
+
+            market_cap = _num(ov, "marketCap", "MarketCapitalization")
+            if market_cap is not None and market_cap > 0:
+                e_val = market_cap
+                d_val = debt0 if debt0 is not None else 0.0
+                v_val = e_val + d_val
+
+                weight_of_equity = e_val / v_val
+                weight_of_debt = d_val / v_val
+
+                if d_val > 0 and int_exp > 0:
+                    cost_of_debt = int_exp / d_val
+                else:
+                    cost_of_debt = 0.0
+
+                calculated_wacc = (weight_of_equity * k_e) + (weight_of_debt * cost_of_debt * (1 - t_rate))
+            else:
+                calculated_wacc = k_e
+
             wacc = request.wacc
-            g_f = request.fcff_growth or 0.02
-            g_t = request.fcff_terminal_growth or 0.02
             if wacc is None:
-                wacc = k_e
-                sw.append(f"{t}: WACC not set; using {wacc} for FCFF value")
+                wacc = calculated_wacc
+                if wacc == k_e:
+                    sw.append(f"{t}: WACC not set and market cap unavailable/no debt; using k_e ({wacc}) for FCFF value")
+
+            # Calculate sustainable growth rate early for dynamic defaults
+            dps = _num(ov, "DividendPerShare", "dividendPerShare")
+            earnings_per_share = _num(ov, "trailingEps", "EPS") or _num(i0, "dilutedEPS") or _num(i0, "basicEPS")
+            roe = _num(ov, "returnOnEquity", "ReturnOnEquityTTM")
+            if roe is None and _num(i0, "netIncome") and _num(b0, "totalStockholderEquity"):
+                try: roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
+                except ZeroDivisionError: pass
+
+            payout_ratio = _num(ov, "payoutRatio", "PayoutRatio")
+            if payout_ratio is None and dps is not None and earnings_per_share and earnings_per_share > 0:
+                payout_ratio = float(dps) / earnings_per_share
+
+            sustainable_growth_rate = None
+            if roe is not None and payout_ratio is not None:
+                sustainable_growth_rate = float(roe) * (1.0 - float(payout_ratio))
+
+            g_f = request.fcff_growth
+            if g_f is None:
+                g_f = sustainable_growth_rate if sustainable_growth_rate is not None else 0.02
+            
+            g_t = request.fcff_terminal_growth
+            if g_t is None:
+                g_t = 0.025
 
             fcff_equity_v = None
             fcfe_v = None
@@ -210,10 +307,13 @@ class ValuationService:
                     tw.append(f"FCFE value: {exc}")
 
             sh = _num(ov, "SharesOutstanding", "sharesOutstanding")
-            dps = _num(ov, "DividendPerShare", "dividendPerShare")
             ddm_g: float | None = None
             ddm2: float | None = None
+            
             g_div = request.ddm_gordon_g
+            if g_div is None:
+                g_div = sustainable_growth_rate if sustainable_growth_rate is not None else 0.02
+            
             if dps is not None and g_div is not None and k_e > g_div:
                 try:
                     d1 = float(dps) * (1.0 + g_div)
@@ -233,11 +333,19 @@ class ValuationService:
                     tw.append(f"Gordon DDM: {exc}")
             elif dps is not None and g_div is not None:
                 tw.append("Gordon DDM skipped: cost of equity must exceed dividend growth")
-            if dps is not None and request.ddm_two_stage is not None and k_e > 0:
+            
+            if dps is not None and k_e > 0:
                 try:
-                    g1 = request.ddm_two_stage.g1
-                    g2 = request.ddm_two_stage.g2
-                    n_ = int(request.ddm_two_stage.n_periods)
+                    if request.ddm_two_stage is not None:
+                        g1 = request.ddm_two_stage.g1
+                        g2 = request.ddm_two_stage.g2
+                        n_ = int(request.ddm_two_stage.n_periods)
+                    else:
+                        eps_growth = _num(ov, "earningsGrowth")
+                        g1 = eps_growth if eps_growth is not None else (sustainable_growth_rate if sustainable_growth_rate is not None else 0.05)
+                        g2 = 0.025
+                        n_ = 5
+
                     if k_e <= g1 or k_e <= g2:
                         raise InvalidValuationError(
                             "DDM two-stage: k must exceed g1 and g2", {"k": k_e}
@@ -247,8 +355,6 @@ class ValuationService:
                     tw.append(f"Two-stage DDM: {exc}")
             elif dps is None:
                 tw.append("DDM skipped (dividend per share missing from overview)")
-            elif dps is not None and g_div is None and request.ddm_two_stage is None:
-                tw.append("DDM skipped (request did not include ddmGordonG or ddmTwoStage)")
 
             if fcff_equity_v is not None and sh is not None:
                 fcff_value_per_share: float | None = per_share(fcff_equity_v, sh)
@@ -258,6 +364,54 @@ class ValuationService:
                 fcfe_value_per_share: float | None = per_share(fcfe_v, sh)
             else:
                 fcfe_value_per_share = None
+
+            # Earnings and Cash Flow Analysis
+            gross_margin = _num(ov, "grossMargins")
+            if gross_margin is None and _num(i0, "grossProfit") and _num(i0, "totalRevenue"):
+                try: gross_margin = _num(i0, "grossProfit") / _num(i0, "totalRevenue")
+                except ZeroDivisionError: pass
+            
+            operating_margin = _num(ov, "operatingMargins", "OperatingMarginTTM")
+            if operating_margin is None and ebit is not None and _num(i0, "totalRevenue"):
+                try: operating_margin = ebit / _num(i0, "totalRevenue")
+                except ZeroDivisionError: pass
+
+            roa = _num(ov, "returnOnAssets", "ReturnOnAssetsTTM")
+            if roa is None and _num(i0, "netIncome") and _num(b0, "totalAssets"):
+                try: roa = _num(i0, "netIncome") / _num(b0, "totalAssets")
+                except ZeroDivisionError: pass
+
+            roe = _num(ov, "returnOnEquity", "ReturnOnEquityTTM")
+            if roe is None and _num(i0, "netIncome") and _num(b0, "totalStockholderEquity"):
+                try: roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
+                except ZeroDivisionError: pass
+
+            book_value_per_share = _num(ov, "bookValue", "BookValue")
+            earnings_per_share = _num(ov, "trailingEps", "EPS") or _num(i0, "dilutedEPS") or _num(i0, "basicEPS")
+            
+            cash_flow_per_share = None
+            op_cf = _num(c0, "operatingCashFlow", "operatingCashflow")
+            if op_cf is not None and sh is not None and sh > 0:
+                cash_flow_per_share = op_cf / sh
+
+            price = _num(ov, "currentPrice", "previousClose", "Price")
+            
+            price_to_book = _num(ov, "priceToBook", "PriceToBookRatio")
+            if price_to_book is None and price is not None and book_value_per_share and book_value_per_share > 0:
+                price_to_book = price / book_value_per_share
+
+            price_to_earnings = _num(ov, "trailingPE", "PERatio")
+            if price_to_earnings is None and price is not None and earnings_per_share and earnings_per_share > 0:
+                price_to_earnings = price / earnings_per_share
+
+            price_to_cash_flow = None
+            market_cap = _num(ov, "marketCap", "MarketCapitalization")
+            if market_cap is not None and op_cf is not None and op_cf > 0:
+                price_to_cash_flow = market_cap / op_cf
+            elif price is not None and cash_flow_per_share and cash_flow_per_share > 0:
+                price_to_cash_flow = price / cash_flow_per_share
+
+            historical_growth_rate = _num(ov, "earningsQuarterlyGrowth", "QuarterlyEarningsGrowthYOY")
 
             rows.append(
                 TickerValuationBlock(
@@ -269,6 +423,26 @@ class ValuationService:
                     ddm_gordon=ddm_g,
                     ddm_two_stage=ddm2,
                     cost_of_equity=float(k_e),
+                    cost_of_debt=cost_of_debt,
+                    weight_of_equity=weight_of_equity,
+                    weight_of_debt=weight_of_debt,
+                    wacc=float(wacc) if wacc is not None else None,
+                    historical_growth_rate=historical_growth_rate,
+                    sustainable_growth_rate=sustainable_growth_rate,
+                    roe=roe,
+                    gross_margin=gross_margin,
+                    operating_margin=operating_margin,
+                    roa=roa,
+                    book_value_per_share=book_value_per_share,
+                    earnings_per_share=earnings_per_share,
+                    cash_flow_per_share=cash_flow_per_share,
+                    price_to_book=price_to_book,
+                    price_to_earnings=price_to_earnings,
+                    price_to_cash_flow=price_to_cash_flow,
+                    calculated_beta=calculated_beta,
+                    historical_return=historical_return,
+                    historical_volatility=historical_volatility,
+                    historical_prices=historical_prices,
                     warnings=tw,
                 )
             )

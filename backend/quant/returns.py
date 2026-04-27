@@ -74,6 +74,20 @@ def expected_returns(
     return a.mean(axis=0) * annualization_factor(frequency)
 
 
+def geometric_returns(
+    returns: NDArray[np.float64],
+    frequency: ReturnFrequency,
+) -> NDArray[np.float64]:
+    """Annualized geometric mean per column."""
+    a = _require_2d_returns(returns)
+    # Add 1 to all returns, multiply them together across time, 
+    # raise to the power of (annualization_factor / N), and subtract 1
+    n_periods = a.shape[0]
+    compound_returns = np.prod(1 + a, axis=0)
+    annualized = compound_returns ** (annualization_factor(frequency) / n_periods) - 1
+    return annualized
+
+
 def std_devs(
     returns: NDArray[np.float64],
     frequency: ReturnFrequency,
@@ -104,6 +118,7 @@ __all__ = [
     "annualize_std",
     "annualize_variance",
     "expected_returns",
+    "geometric_returns",
     "sample_covariance",
     "std_devs",
 ]

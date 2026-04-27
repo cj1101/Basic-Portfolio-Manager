@@ -47,6 +47,12 @@ export interface PriceBar {
   volume: number;
 }
 
+export interface HistoricalResponse {
+  ticker: Ticker;
+  frequency: ReturnFrequency;
+  bars: PriceBar[];
+}
+
 export interface Quote {
   ticker: Ticker;
   price: number;
@@ -375,6 +381,26 @@ export interface TickerValuationBlock {
   ddmGordon: number | null;
   ddmTwoStage: number | null;
   costOfEquity: number;
+
+  historicalGrowthRate?: number | null;
+  sustainableGrowthRate?: number | null;
+  roe?: number | null;
+
+  grossMargin?: number | null;
+  operatingMargin?: number | null;
+  roa?: number | null;
+  bookValuePerShare?: number | null;
+  earningsPerShare?: number | null;
+  cashFlowPerShare?: number | null;
+  priceToBook?: number | null;
+  priceToEarnings?: number | null;
+  priceToCashFlow?: number | null;
+
+  calculatedBeta?: number | null;
+  historicalReturn?: number | null;
+  historicalVolatility?: number | null;
+  historicalPrices?: PriceBar[] | null;
+
   warnings: string[];
 }
 
@@ -383,6 +409,21 @@ export interface ValuationResult {
   perTicker: TickerValuationBlock[];
   dataSource: string;
   warnings: string[];
+}
+
+export interface ExportRequest {
+  tickers: Ticker[];
+  riskProfile: RiskProfile;
+  returnFrequency?: ReturnFrequency;
+  lookbackYears?: number;
+  allowShort?: boolean;
+  allowLeverage?: boolean;
+  wacc?: number;
+  fcffGrowth?: number;
+  fcffTerminalGrowth?: number;
+  costOfEquityOverride?: number;
+  ddmGordonG?: number;
+  ddmTwoStage?: DdmTwoStageParams;
 }
 
 // ---------------------------------------------------------------------------
