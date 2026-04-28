@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import App from "../src/App";
 import { optimizationResultSample } from "../src/fixtures/optimizationResultSample";
@@ -11,6 +11,12 @@ function optimizeCallCount(fetchMock: ReturnType<typeof installFetchMock>): numb
   return fetchMock.mock.calls.filter(
     ([url]) => typeof url === "string" && url.includes("/api/optimize"),
   ).length;
+}
+
+async function sleepInAct(ms: number): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  });
 }
 
 /**
@@ -67,7 +73,7 @@ describe("optimize flow", () => {
     await waitFor(() => expect(optimizeCallCount(fetchMock)).toBe(baseline + 1), WAIT);
 
     // Let any straggling debounces resolve, then assert no extra requests.
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await sleepInAct(800);
     expect(optimizeCallCount(fetchMock)).toBe(baseline + 1);
   }, 15000);
 
@@ -76,7 +82,7 @@ describe("optimize flow", () => {
 
     await waitFor(() => expect(optimizeCallCount(fetchMock)).toBeGreaterThanOrEqual(1), WAIT);
     // Wait long enough that any debounced trailing request also lands.
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await sleepInAct(800);
     const baseline = optimizeCallCount(fetchMock);
 
     const slider = screen.getByRole("slider", { name: /risk aversion/i }) as HTMLInputElement;
@@ -89,7 +95,7 @@ describe("optimize flow", () => {
     );
 
     // Give effects a chance to fire.
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await sleepInAct(800);
     expect(optimizeCallCount(fetchMock)).toBe(baseline);
   }, 15000);
 
@@ -98,7 +104,7 @@ describe("optimize flow", () => {
     const user = userEvent.setup();
 
     await waitFor(() => expect(optimizeCallCount(fetchMock)).toBeGreaterThanOrEqual(1), WAIT);
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await sleepInAct(300);
     const baseline = optimizeCallCount(fetchMock);
 
     await user.click(screen.getByRole("button", { name: /re-optimize the portfolio/i }));
