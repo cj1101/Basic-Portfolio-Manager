@@ -247,7 +247,7 @@ class ExportService:
 
         cov_r0 = last_data_row + 3
         start_cov = orp_col + 2
-        exc_col = start_cov + n_t  # first column to the right of the n×n cov block
+        exc_col = start_cov + n_t  # first column to the right of the n x n cov block
         ws.cell(row=cov_r0 - 1, column=1, value="Covariance annual (COVARIANCE.S × k)").font = (
             self.bold_font
         )
@@ -739,7 +739,6 @@ class ExportService:
             c_ter.number_format = "0.00%"
             r += 1
 
-            r_gordon = r
             ws.cell(row=r, column=1, value="Gordon dividend g (Excel)")
             c_gordon = ws.cell(row=r, column=3)
             c_gordon.value = (
@@ -767,7 +766,6 @@ class ExportService:
             c_w_use.number_format = "0.00%"
             r += 1
 
-            r_fcff_firm = r
             ws.cell(row=r, column=1, value="Enterprise value (FCFF perpetuity)")
             c_ef = ws.cell(row=r, column=3)
             c_ef.value = (
@@ -778,7 +776,6 @@ class ExportService:
             c_ef.number_format = "#,##0"
             r += 1
 
-            r_fcfe_eq = r
             ws.cell(row=r, column=1, value="Equity value from FCFE (perpetuity)")
             c_ee = ws.cell(row=r, column=3)
             c_ee.value = (
@@ -794,7 +791,6 @@ class ExportService:
             )
             r += 1
 
-            r_pe = r
             ws.cell(row=r, column=1, value="P/E (trailing)")
             pe_d = ws.cell(row=r, column=4)
             if v.price_to_earnings is not None:
@@ -803,7 +799,6 @@ class ExportService:
             ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
             r += 1
 
-            r_pb = r
             ws.cell(row=r, column=1, value="P/B")
             pb_d = ws.cell(row=r, column=4)
             if v.price_to_book is not None:
@@ -812,7 +807,6 @@ class ExportService:
             ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
             r += 1
 
-            r_roe = r
             ws.cell(row=r, column=1, value="ROE")
             roe_d = ws.cell(row=r, column=4)
             if v.roe is not None:
@@ -821,7 +815,6 @@ class ExportService:
             ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
             r += 1
 
-            r_gm = r
             ws.cell(row=r, column=1, value="Gross margin")
             gm_d = ws.cell(row=r, column=4)
             if v.gross_margin is not None:
@@ -830,7 +823,6 @@ class ExportService:
             ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
             r += 1
 
-            r_om = r
             ws.cell(row=r, column=1, value="Operating margin")
             om_d = ws.cell(row=r, column=4)
             if v.operating_margin is not None:
@@ -839,7 +831,6 @@ class ExportService:
             ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
             r += 1
 
-            r_vps_fcff = r
             ws.cell(row=r, column=1, value="FCFF value per share")
             vps_f = ws.cell(row=r, column=4)
             if v.fcff_value_per_share is not None:
@@ -848,7 +839,6 @@ class ExportService:
             ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
             r += 1
 
-            r_vps_fcfe = r
             ws.cell(row=r, column=1, value="FCFE value per share")
             vps_e = ws.cell(row=r, column=4)
             if v.fcfe_value_per_share is not None:
@@ -857,7 +847,6 @@ class ExportService:
             ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
             r += 1
 
-            r_ddm1 = r
             ws.cell(row=r, column=1, value="Gordon DDM value per share")
             ddm1_d = ws.cell(row=r, column=4)
             if v.ddm_gordon is not None:
@@ -866,7 +855,6 @@ class ExportService:
             ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
             r += 1
 
-            r_ddm2 = r
             ws.cell(row=r, column=1, value="2-stage DDM value per share")
             ddm2_d = ws.cell(row=r, column=4)
             if v.ddm_two_stage is not None:
@@ -1171,7 +1159,6 @@ class ExportService:
         ws.cell(row=r, column=1, value="Allow leverage")
         ws.cell(row=r, column=2, value=bool(allow_leverage))
         r += 1
-        r_allow_short = r
         ws.cell(row=r, column=1, value="allow_short (tangency vs QP ORP)")
         ws.cell(row=r, column=2, value=bool(allow_short))
         r += 1
