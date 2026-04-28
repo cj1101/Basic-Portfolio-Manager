@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date as Date
-from typing import Any
+from typing import Any, Literal
 
 from app.data.calendar import last_trading_day_on_or_before
 from app.data.service import DataService
@@ -235,21 +235,25 @@ class ChatToolbox:
         if name == "run_optimization":
             inputs = _require_inputs(chat_context)
             req = _build_optimization_request(inputs, arguments)
-            result = await self._optimize.run(req, data_service=self._data_service)
+            optimization_result = await self._optimize.run(req, data_service=self._data_service)
             return ToolExecutionResult(
                 name=name,
                 payload={
-                    "optimization_result": result.result.model_dump(mode="json", by_alias=True)
+                    "optimization_result": optimization_result.result.model_dump(
+                        mode="json", by_alias=True
+                    )
                 },
                 citations=_snapshot_citations(
-                    build_portfolio_snapshot(result.result), tool_name=name
+                    build_portfolio_snapshot(optimization_result.result), tool_name=name
                 ),
             )
         if name == "get_quote":
             ticker = str(arguments["ticker"]).upper().strip()
-            result = await self._data_service.get_quote(ticker)
+            quote_result = await self._data_service.get_quote(ticker)
             quote = Quote(
-                ticker=result.quote.ticker, price=result.quote.price, as_of=result.quote.as_of
+                ticker=quote_result.quote.ticker,
+                price=quote_result.quote.price,
+                as_of=quote_result.quote.as_of,
             )
             return ToolExecutionResult(
                 name=name,
@@ -270,97 +274,116 @@ class ChatToolbox:
             frequency = ReturnFrequency(str(arguments.get("frequency") or "daily"))
             years = int(arguments.get("years") or _require_inputs(chat_context).lookback_years)
             as_of = _parse_date_opt(arguments.get("as_of")) or _default_as_of(chat_context)
-            result = await self._data_service.get_historical(
+            historical_result = await self._data_service.get_historical(
                 ticker,
                 frequency=frequency,
                 lookback_years=years,
                 as_of=as_of,
             )
-            payload = HistoricalResponse(
-                ticker=result.ticker,
-                frequency=result.frequency,
-                bars=result.bars,
+            historical_payload = HistoricalResponse(
+                ticker=historical_result.ticker,
+                frequency=historical_result.frequency,
+                bars=historical_result.bars,
             )
             return ToolExecutionResult(
                 name=name,
-                payload={"historical": payload.model_dump(mode="json", by_alias=True)},
+                payload={"historical": historical_payload.model_dump(mode="json", by_alias=True)},
                 citations=[
                     ChatCitation(
                         label=f"history · {ticker}",
-                        value=f"{len(payload.bars)} bars",
+                        value=f"{len(historical_payload.bars)} bars",
                         source_type="tool",
                         tool_name=name,
                         scope=f"{ticker}:{frequency.value}",
-                        as_of=(payload.bars[-1].date.isoformat() if payload.bars else None),
+                        as_of=(
+                            historical_payload.bars[-1].date.isoformat()
+                            if historical_payload.bars
+                            else None
+                        ),
                     )
                 ],
             )
         if name == "get_risk_free_rate":
             as_of = _parse_date_opt(arguments.get("as_of")) or _default_as_of(chat_context)
             window_end = last_trading_day_on_or_before(as_of) if as_of is not None else None
-            result = await self._data_service.get_risk_free_rate(window_end=window_end)
-            payload = RiskFreeRateResponse(
-                rate=result.rate, as_of=result.as_of, source=result.source
+            risk_free_result = await self._data_service.get_risk_free_rate(window_end=window_end)
+            risk_free_source: Literal["FRED", "FALLBACK"] = (
+                "FRED" if risk_free_result.source == "FRED" else "FALLBACK"
+            )
+            risk_free_payload = RiskFreeRateResponse(
+                rate=risk_free_result.rate,
+                as_of=risk_free_result.as_of,
+                source=risk_free_source,
             )
             return ToolExecutionResult(
                 name=name,
-                payload={"risk_free_rate": payload.model_dump(mode="json", by_alias=True)},
+                payload={
+                    "risk_free_rate": risk_free_payload.model_dump(mode="json", by_alias=True)
+                },
                 citations=[
                     ChatCitation(
                         label="risk-free rate",
-                        value=f"{payload.rate:.4f}",
+                        value=f"{risk_free_payload.rate:.4f}",
                         source_type="tool",
                         tool_name=name,
-                        as_of=payload.as_of.isoformat(),
+                        as_of=risk_free_payload.as_of.isoformat(),
                     )
                 ],
             )
         if name == "get_analytics_performance":
-            req = _build_analytics_request(arguments, chat_context, context)
-            result, src = await self._analytics.run(req, data_service=self._data_service)
+            analytics_req = _build_analytics_request(arguments, chat_context, context)
+            analytics_result, analytics_source = await self._analytics.run(
+                analytics_req, data_service=self._data_service
+            )
             return ToolExecutionResult(
                 name=name,
                 payload={
-                    "analytics_performance": result.model_dump(mode="json", by_alias=True),
-                    "data_source": src,
+                    "analytics_performance": analytics_result.model_dump(
+                        mode="json", by_alias=True
+                    ),
+                    "data_source": analytics_source,
                 },
                 citations=[
                     ChatCitation(
                         label="analytics as of",
-                        value=result.as_of.isoformat(),
+                        value=analytics_result.as_of.isoformat(),
                         source_type="tool",
                         tool_name=name,
                     ),
                     ChatCitation(
                         label="ORP Treynor",
-                        value=f"{result.orp.treynor:.4f}",
+                        value=f"{analytics_result.orp.treynor:.4f}",
                         source_type="tool",
                         tool_name=name,
                     ),
                 ],
             )
         if name == "get_valuation":
-            req = _build_valuation_request(arguments, chat_context)
-            window_end = last_trading_day_on_or_before(req.as_of) if req.as_of is not None else None
+            valuation_req = _build_valuation_request(arguments, chat_context)
+            window_end = (
+                last_trading_day_on_or_before(valuation_req.as_of)
+                if valuation_req.as_of is not None
+                else None
+            )
             risk_free = await self._data_service.get_risk_free_rate(window_end=window_end)
-            result, src = await self._valuation.run(
-                req,
+            valuation_result, valuation_source = await self._valuation.run(
+                valuation_req,
                 data_service=self._data_service,
                 risk_free_rate=risk_free.rate,
             )
             return ToolExecutionResult(
                 name=name,
                 payload={
-                    "valuation": result.model_dump(mode="json", by_alias=True),
-                    "data_source": src,
+                    "valuation": valuation_result.model_dump(mode="json", by_alias=True),
+                    "data_source": valuation_source,
                 },
                 citations=[
                     ChatCitation(
                         label="valuation tickers",
-                        value=", ".join(block.ticker for block in result.per_ticker),
+                        value=", ".join(block.ticker for block in valuation_result.per_ticker),
                         source_type="tool",
                         tool_name=name,
-                        as_of=result.as_of.isoformat(),
+                        as_of=valuation_result.as_of.isoformat(),
                     )
                 ],
             )
@@ -468,15 +491,17 @@ def _build_analytics_request(
         weights = {str(k).upper().strip(): float(v) for k, v in context.orp.weights.items()}
     else:
         raise AppError(ErrorCode.INTERNAL, "Analytics tool requires ORP weights.")
-    y_star = float(
+    y_star = _coerce_float(
         overrides.get("y_star")
         if "y_star" in overrides
-        else (context.complete.y_star if context is not None else 1.0)
+        else (context.complete.y_star if context is not None else 1.0),
+        default=1.0,
     )
-    weight_risk_free = float(
+    weight_risk_free = _coerce_float(
         overrides.get("weight_risk_free")
         if "weight_risk_free" in overrides
-        else (context.complete.weight_risk_free if context is not None else 0.0)
+        else (context.complete.weight_risk_free if context is not None else 0.0),
+        default=0.0,
     )
     return AnalyticsPerformanceRequest(
         tickers=tickers,
@@ -524,6 +549,11 @@ def _float_opt(value: Any) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+def _coerce_float(value: Any, *, default: float) -> float:
+    parsed = _float_opt(value)
+    return parsed if parsed is not None else default
 
 
 def _loaded_panel_payload(loaded: LoadedPanelData | None, panel: str) -> dict[str, Any]:

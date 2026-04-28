@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any
 
 from app.errors import AppError
 from app.schemas import (
@@ -109,7 +110,7 @@ class ChatService:
                 {"reason": "openrouter_api_key_missing"},
             )
         try:
-            result = await self._llm.answer(
+            raw_result: Any = await self._llm.answer(
                 messages,
                 context,
                 model=model,
@@ -119,18 +120,18 @@ class ChatService:
         except TypeError as exc:
             if "unexpected keyword argument" not in str(exc):
                 raise
-            result = await self._llm.answer(messages, context, model=model)
+            raw_result = await self._llm.answer(messages, context, model=model)
         citations: list[ChatCitation] = []
         tool_invocations: list[str] = []
-        if hasattr(result, "answer"):
-            answer = result.answer
-            model_used = result.model_used
-            citations = list(getattr(result, "citations", []))
-            tool_invocations = list(getattr(result, "tool_invocations", []))
-        elif isinstance(result, tuple):
-            answer, model_used = result
+        if hasattr(raw_result, "answer"):
+            answer = str(raw_result.answer)
+            model_used = str(raw_result.model_used)
+            citations = list(getattr(raw_result, "citations", []))
+            tool_invocations = list(getattr(raw_result, "tool_invocations", []))
+        elif isinstance(raw_result, tuple):
+            answer, model_used = raw_result
         else:  # pragma: no cover
-            answer, model_used = result, (model or self._llm.model)
+            answer, model_used = str(raw_result), (model or self._llm.model)
         return ChatResponse(
             answer=answer,
             source=ChatSource.LLM,
