@@ -283,7 +283,7 @@ class YahooClient:
                     start=start_date.isoformat(),
                     end=(end_date + timedelta(days=1)).isoformat(),
                     interval="1d",
-                    auto_adjust=True,
+                    auto_adjust=False,
                     actions=False,
                     raise_errors=False,
                 )
@@ -305,13 +305,20 @@ class YahooClient:
         for idx, row in frame.iterrows():
             try:
                 day = idx.date() if hasattr(idx, "date") else pd.Timestamp(idx).date()
+                raw_c = float(row["Close"])
+                adj_raw = row.get("Adj Close")
+                if adj_raw is None or pd.isna(adj_raw):
+                    adj_c = raw_c
+                else:
+                    adj_c = float(adj_raw)
                 bars.append(
                     {
                         "date": day.isoformat(),
                         "open": float(row["Open"]),
                         "high": float(row["High"]),
                         "low": float(row["Low"]),
-                        "close": float(row["Close"]),
+                        "close_nominal": raw_c,
+                        "close": adj_c,
                         "volume": int(row.get("Volume", 0) or 0),
                     }
                 )

@@ -111,8 +111,9 @@ class AlphaVantageClient:
         """Return a list of bar dicts sorted ascending by date.
 
         Each bar: ``{"date": "YYYY-MM-DD", "open": float, "high": float,
-        "low": float, "close": float, "volume": int}``.
+        "low": float, "close": float, "close_nominal": float, "volume": int}``.
         ``close`` is the *adjusted* close per CONTRACTS.md §3.
+        ``close_nominal`` is the unadjusted ``close`` column from upstream.
         """
 
         payload = await self._get(
@@ -135,6 +136,7 @@ class AlphaVantageClient:
                         "open": float(row["1. open"]),
                         "high": float(row["2. high"]),
                         "low": float(row["3. low"]),
+                        "close_nominal": float(row["4. close"]),
                         "close": float(row["5. adjusted close"]),
                         "volume": int(float(row["6. volume"])),
                     }

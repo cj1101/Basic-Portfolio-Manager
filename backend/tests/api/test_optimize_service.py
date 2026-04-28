@@ -49,6 +49,7 @@ def _bars_from_returns(
             high=float(closes[i]),
             low=float(closes[i]),
             close=float(closes[i]),
+            close_nominal=float(closes[i]),
             volume=1_000_000,
         )
         for i in range(n)
@@ -162,15 +163,18 @@ def test_normalize_request_tickers_rejects_under_two():
 
 def test_build_return_frame_inner_joins_shared_dates():
     base = Date(2024, 1, 15)
-    bars_a = [
-        PriceBar(date=base - timedelta(days=i), open=100, high=100, low=100, close=100 * (1 + 0.001 * i), volume=1)
-        for i in range(10)
-    ]
-    bars_b = [
-        # B is only 5 long; join should trim A to B's latest 5 shared dates.
-        PriceBar(date=base - timedelta(days=i), open=100, high=100, low=100, close=100 * (1 + 0.002 * i), volume=1)
-        for i in range(5)
-    ]
+    bars_a = []
+    bars_b = []
+    for i in range(10):
+        c = 100 * (1 + 0.001 * i)
+        bars_a.append(
+            PriceBar(date=base - timedelta(days=i), open=100, high=100, low=100, close=c, close_nominal=c, volume=1)
+        )
+    for i in range(5):
+        c = 100 * (1 + 0.002 * i)
+        bars_b.append(
+            PriceBar(date=base - timedelta(days=i), open=100, high=100, low=100, close=c, close_nominal=c, volume=1)
+        )
     frame = build_return_frame({"A": bars_a, "B": bars_b}, column_order=("A", "B"))
     assert frame.shape[1] == 2
     # Log-diffs across 5 shared observations ⇒ 4 rows.
@@ -270,6 +274,7 @@ async def test_run_rejects_short_history():
                 high=100,
                 low=100,
                 close=100 * (1 + 0.001 * i),
+                close_nominal=100 * (1 + 0.001 * i),
                 volume=1,
             )
             for i in range(10)

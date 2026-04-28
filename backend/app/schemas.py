@@ -84,6 +84,8 @@ class PriceBar(_CamelModel):
     low: float
     close: float
     volume: int
+    # Raw/nominal close (NYSE print). Optional for legacy payloads; exporters use when set.
+    close_nominal: float | None = None
 
 
 class Quote(_CamelModel):
@@ -261,6 +263,26 @@ class ValuationRequest(_CamelModel):
     ddm_two_stage: DdmTwoStageParams | None = None
 
 
+class ValuationExportDrivers(_CamelModel):
+    """Internal spreadsheet drivers (excluded from JSON). Used by Excel export only."""
+
+    ticker: Ticker
+    ebit: float | None = None
+    tax_rate: float = 0.21
+    depreciation: float = 0.0
+    capex: float = 0.0
+    delta_nwc: float = 0.0
+    interest_expense: float = 0.0
+    net_borrowing: float = 0.0
+    financial_unsafe: bool = False
+    beta: float = 1.0
+    market_risk_premium: float = 0.05
+    risk_free_annual: float
+    market_cap: float | None = None
+    total_debt: float | None = None
+    cost_of_debt_pretax: float | None = None
+
+
 class TickerValuationBlock(_CamelModel):
     ticker: Ticker
     fcff: float | None
@@ -305,6 +327,7 @@ class ValuationResult(_CamelModel):
     per_ticker: list[TickerValuationBlock]
     data_source: str
     warnings: list[str] = Field(default_factory=list)
+    export_drivers: list[ValuationExportDrivers] = Field(default_factory=list, exclude=True)
 
 
 ApiKeyName = Literal["OPENROUTER_API_KEY", "ALPHA_VANTAGE_API_KEY", "FRED_API_KEY"]

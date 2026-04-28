@@ -10,7 +10,7 @@ import pytest
 
 from app.data.mock import generate_daily_bars
 from app.data.service import DataService
-from app.errors import ProviderUnavailableError, RateLimitError, UnknownTickerError
+from app.errors import InvalidReturnWindowError, ProviderUnavailableError, RateLimitError, UnknownTickerError
 from app.schemas import ReturnFrequency
 
 

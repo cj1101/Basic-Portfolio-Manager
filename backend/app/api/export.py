@@ -6,6 +6,8 @@ from fastapi.responses import StreamingResponse
 from datetime import datetime, UTC
 from datetime import date as Date
 
+import pandas as pd
+
 from app.api.deps import get_service
 from app.data.calendar import last_trading_day_on_or_before
 from app.data.service import DataService
@@ -20,7 +22,10 @@ from app.services import OptimizeService
 from app.services.analytics_service import AnalyticsService
 from app.services.valuation_service import ValuationService
 from app.services.export_service import ExportService
-from app.data.fama_french_factors import load_fama_french_monthly
+from app.services.returns_frame import build_return_frame
+from app.services.optimize_service import MARKET_PROXY_TICKER
+from app.data.fama_french_factors import load_fama_french_monthly, by_year_month_index
+from quant.returns import annualization_factor
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -53,7 +58,75 @@ async def post_export(
     opt_svc = OptimizeService()
     opt_res_container = await opt_svc.run(optimize_req, data_service=data_service)
     opt_res = opt_res_container.result
-    
+
+    anchor: Date | None = body.as_of
+    tickers_norm = [str(t).upper().strip() for t in body.tickers]
+    fetch = [*tickers_norm, MARKET_PROXY_TICKER]
+    hist: dict[str, object] = {}
+    for t in fetch:
+        hist[t] = await data_service.get_historical(
+            t,
+            frequency=body.return_frequency,
+            lookback_years=body.lookback_years,
+            as_of=anchor,
+        )
+    aligned_log_returns = build_return_frame(
+        {t: hist[t].bars for t in fetch},  # type: ignore[attr-defined]
+        column_order=tuple([*tickers_norm, MARKET_PROXY_TICKER]),
+    )
+    ann_k = annualization_factor(body.return_frequency)
+
+    # Monthly closes for FF3 workbook block (simple returns; factors aligned by ym).
+    monthly_by: dict[str, pd.Series] = {}
+    for t in tickers_norm:
+        mb = await data_service.get_historical(
+            t,
+            frequency=ReturnFrequency.MONTHLY,
+            lookback_years=body.lookback_years,
+            as_of=anchor,
+        )
+        s = pd.Series(
+            {bar.date: float(bar.close) for bar in mb.bars},
+            dtype="float64",
+        )
+        s.index = pd.to_datetime(s.index)
+        monthly_by[t] = s.sort_index().resample("ME").last().dropna()
+    joint_px = pd.concat(monthly_by, axis=1, join="inner")
+    joint_px = joint_px[tickers_norm].dropna()
+    simple_monthly = joint_px.pct_change().dropna()
+    fac_idx = by_year_month_index(load_fama_french_monthly())
+    anchor_ym_cap2: int | None = None
+    if anchor is not None:
+        we2 = last_trading_day_on_or_before(anchor)
+        anchor_ym_cap2 = we2.year * 100 + we2.month
+
+    rows_ts: list[pd.Timestamp] = []
+    fac_rows: list = []
+    for ts in simple_monthly.index:
+        ym = int(ts.year) * 100 + int(ts.month)
+        if anchor_ym_cap2 is not None and ym > anchor_ym_cap2:
+            continue
+        frow = fac_idx.get(ym)
+        if frow is None:
+            continue
+        rows_ts.append(ts)
+        fac_rows.append(frow)
+
+    ff_monthly = pd.DataFrame()
+    if rows_ts:
+        idx = pd.DatetimeIndex(rows_ts)
+        rets_slice = simple_monthly.loc[idx]
+        ff_monthly = pd.DataFrame(
+            {
+                "RF": [f.rf for f in fac_rows],
+                "Mkt_RF": [f.mkt_rf for f in fac_rows],
+                "SMB": [f.smb for f in fac_rows],
+                "HML": [f.hml for f in fac_rows],
+            },
+            index=idx,
+        )
+        for t in tickers_norm:
+            ff_monthly[t] = rets_slice[t].to_numpy(dtype=float)
     # 2. Run Analytics (performance metrics, FF3, holding periods)
     ana_req = AnalyticsPerformanceRequest(
         tickers=body.tickers,
@@ -82,9 +155,9 @@ async def post_export(
     rfr_latest = await data_service.get_risk_free_rate(window_end=window_end_rfr)
     val_res, _ = await val_svc.run(val_req, data_service=data_service, risk_free_rate=rfr_latest.rate)
 
-    # 4. Fetch 10y SPY and bundled FF RF series for the sheets (aligned to export window when set)
-    spy_hist = await data_service.get_historical(
-        "SPY",
+    # ^GSPC = S&P 500 price index monthly levels for workbook only (nominal formulas). API analytics still use SPY where coded.
+    market_index_hist = await data_service.get_historical(
+        "^GSPC",
         frequency=ReturnFrequency.MONTHLY,
         lookback_years=10,
         as_of=body.as_of,
@@ -112,8 +185,15 @@ async def post_export(
         optimize=opt_res,
         analytics=ana_res,
         valuation=val_res,
-        spy_bars=spy_hist.bars,
-        rf_series=rf_series
+        market_index_bars=market_index_hist.bars,
+        rf_series=rf_series,
+        risk_profile=body.risk_profile,
+        allow_leverage=body.allow_leverage,
+        export_request=body,
+        aligned_log_returns=aligned_log_returns,
+        annualization_factor=ann_k,
+        allow_short=body.allow_short,
+        ff_monthly=ff_monthly,
     )
     
     filename = f"Portfolio_Analysis_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.xlsx"

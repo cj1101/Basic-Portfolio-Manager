@@ -62,6 +62,7 @@ async def test_yahoo_historical_normalizes():
         "2024-11-21",
     ]
     assert bars[-1]["close"] == pytest.approx(228.52)
+    assert bars[-1]["close_nominal"] == pytest.approx(228.52)
 
 
 async def test_yahoo_historical_empty_is_unknown():

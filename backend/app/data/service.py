@@ -139,8 +139,13 @@ class DataService:
                 ticker, frequency.value, window_end, lookback_years
             )
             if cached is not None:
-                bars = [PriceBar(**b) for b in cached.payload["bars"]]
-                return HistoricalResult(ticker, frequency, bars, cached.source, [])
+                raw_bars = cached.payload.get("bars") or []
+                # Legacy cache without regular close — refetch so exports never mirror adjusted-only rows.
+                if not raw_bars or "close_nominal" not in raw_bars[0]:
+                    cached = None
+                else:
+                    bars = [PriceBar(**b) for b in raw_bars]
+                    return HistoricalResult(ticker, frequency, bars, cached.source, [])
             return await self._fetch_historical(
                 ticker, frequency=frequency, lookback_years=lookback_years, window_end=window_end
             )
@@ -425,13 +430,20 @@ class DataService:
 
 
 _TICKER_RE = re.compile(r"[A-Z0-9.]{1,10}")
+# Yahoo-style index symbols, e.g. ^GSPC for the S&P 500 price index.
+_TICKER_INDEX_RE = re.compile(r"\^[A-Z][A-Z0-9.]{1,14}$")
 
 
 def _normalize_ticker(raw: str) -> str:
     if not raw:
         raise InvalidReturnWindowError("ticker is required")
     value = raw.strip().upper()
-    if not _TICKER_RE.fullmatch(value):
+    if value.startswith("^"):
+        if _TICKER_INDEX_RE.fullmatch(value) is None:
+            raise InvalidReturnWindowError(
+                f"invalid ticker: {raw!r}", {"ticker": raw}
+            )
+    elif not _TICKER_RE.fullmatch(value):
         raise InvalidReturnWindowError(
             f"invalid ticker: {raw!r}", {"ticker": raw}
         )
@@ -457,28 +469,31 @@ def _resample_bars(daily: list[dict[str, Any]], rule: str) -> list[dict[str, Any
     frame = pd.DataFrame(daily)
     frame["date"] = pd.to_datetime(frame["date"])
     frame = frame.set_index("date").sort_index()
-    agg = frame.resample(rule).agg(
-        {
-            "open": "first",
-            "high": "max",
-            "low": "min",
-            "close": "last",
-            "volume": "sum",
-        }
-    )
+    agg_map: dict[str, str] = {
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+        "volume": "sum",
+    }
+    if "close_nominal" in frame.columns:
+        frame["close_nominal"] = pd.to_numeric(frame["close_nominal"], errors="coerce").ffill()
+        agg_map["close_nominal"] = "last"
+    agg = frame.resample(rule).agg(agg_map)
     agg = agg.dropna(subset=["open", "high", "low", "close"])
     result: list[dict[str, Any]] = []
     for idx, row in agg.iterrows():
-        result.append(
-            {
-                "date": idx.date().isoformat(),
-                "open": float(row["open"]),
-                "high": float(row["high"]),
-                "low": float(row["low"]),
-                "close": float(row["close"]),
-                "volume": int(row["volume"]),
-            }
-        )
+        item: dict[str, Any] = {
+            "date": idx.date().isoformat(),
+            "open": float(row["open"]),
+            "high": float(row["high"]),
+            "low": float(row["low"]),
+            "close": float(row["close"]),
+            "volume": int(row["volume"]),
+        }
+        if "close_nominal" in agg_map and pd.notna(row.get("close_nominal")):
+            item["close_nominal"] = float(row["close_nominal"])
+        result.append(item)
     return result
 
 

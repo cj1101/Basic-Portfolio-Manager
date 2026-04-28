@@ -26,6 +26,7 @@ def _fake_monthly_hist(ticker: str) -> HistoricalResult:
                 high=101.0,
                 low=99.0,
                 close=100.0,
+                close_nominal=100.0,
                 volume=1_000_000,
             )
         )

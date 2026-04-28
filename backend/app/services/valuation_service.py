@@ -16,6 +16,7 @@ from app.schemas import (
     PriceBar,
     ReturnFrequency,
     TickerValuationBlock,
+    ValuationExportDrivers,
     ValuationRequest,
     ValuationResult,
 )
@@ -196,6 +197,7 @@ class ValuationService:
         risk_free_rate: float,
     ) -> tuple[ValuationResult, str]:
         rows: list[TickerValuationBlock] = []
+        export_drivers: list[ValuationExportDrivers] = []
         sw: list[str] = []
         sources_seen: set[str] = set()
         anchor: Date | None = request.as_of
@@ -234,6 +236,13 @@ class ValuationService:
             ann_c = list(cf.get("annualReports") or [])
             if not ann_i or not ann_b or not ann_c:
                 tw.append("Missing annual reports in fundamentals response")
+                export_drivers.append(
+                    ValuationExportDrivers(
+                        ticker=t,
+                        financial_unsafe=True,
+                        risk_free_annual=float(risk_free_rate),
+                    )
+                )
                 rows.append(
                     TickerValuationBlock(
                         ticker=t,
@@ -613,6 +622,26 @@ class ValuationService:
                 ov_inputs, "earningsQuarterlyGrowth", "QuarterlyEarningsGrowthYOY"
             )
 
+            export_drivers.append(
+                ValuationExportDrivers(
+                    ticker=t,
+                    ebit=ebit,
+                    tax_rate=float(t_rate),
+                    depreciation=float(depr),
+                    capex=float(capex),
+                    delta_nwc=float(delta_nwc),
+                    interest_expense=float(int_exp),
+                    net_borrowing=float(net_borrowing),
+                    financial_unsafe=bool(financial_unsafe),
+                    beta=float(beta),
+                    market_risk_premium=0.05,
+                    risk_free_annual=float(risk_free_rate),
+                    market_cap=float(market_cap) if market_cap is not None else None,
+                    total_debt=float(debt0) if debt0 is not None else None,
+                    cost_of_debt_pretax=float(cost_of_debt) if cost_of_debt is not None else None,
+                )
+            )
+
             rows.append(
                 TickerValuationBlock(
                     ticker=t,
@@ -655,6 +684,7 @@ class ValuationService:
                 per_ticker=rows,
                 data_source=source,
                 warnings=sw,
+                export_drivers=export_drivers,
             ),
             source,
         )

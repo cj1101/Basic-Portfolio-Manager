@@ -48,7 +48,9 @@ export function TechnicalAnalysisTab() {
   const allTickers = Array.from(new Set([...tickers, "SPY"]));
   const queries = useHistoricalBulk(
     allTickers,
-    optimizationRequest.returnFrequency ?? "daily",
+    // Technical charts are always computed from daily bars so the
+    // moving-average window remains a true day count across modes.
+    "daily",
     optimizationRequest.lookbackYears ?? 5,
     optimizationRequest.asOf,
   );

@@ -124,13 +124,15 @@ def generate_daily_bars(
         low = min(open_, new_close) * (1 - 0.004 * rng.random())
         volume = int(5_000_000 + rng.random() * 15_000_000)
 
+        px = round(new_close, 4)
         bars.append(
             {
                 "date": day.isoformat(),
                 "open": round(open_, 4),
                 "high": round(high, 4),
                 "low": round(low, 4),
-                "close": round(new_close, 4),
+                "close": px,
+                "close_nominal": px,
                 "volume": volume,
             }
         )
