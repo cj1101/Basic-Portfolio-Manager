@@ -427,9 +427,11 @@ class ValuationService:
                 or _num(i0, "basicEPS")
             )
             roe = _num(ov_inputs, "returnOnEquity", "ReturnOnEquityTTM")
-            if roe is None and _num(i0, "netIncome") and _num(b0, "totalStockholderEquity"):
+            ni_sg = _num(i0, "netIncome")
+            teq_sg = _num(b0, "totalStockholderEquity")
+            if roe is None and ni_sg is not None and teq_sg is not None and ni_sg and teq_sg:
                 with contextlib.suppress(ZeroDivisionError):
-                    roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
+                    roe = ni_sg / teq_sg
 
             payout_ratio = _num(ov_inputs, "payoutRatio", "PayoutRatio")
             if (
@@ -542,24 +544,31 @@ class ValuationService:
 
             # Earnings and Cash Flow Analysis
             gross_margin = _num(ov_inputs, "grossMargins")
-            if gross_margin is None and _num(i0, "grossProfit") and _num(i0, "totalRevenue"):
+            gp = _num(i0, "grossProfit")
+            rev_gm = _num(i0, "totalRevenue")
+            if gross_margin is None and gp is not None and rev_gm is not None and gp and rev_gm:
                 with contextlib.suppress(ZeroDivisionError):
-                    gross_margin = _num(i0, "grossProfit") / _num(i0, "totalRevenue")
+                    gross_margin = gp / rev_gm
 
             operating_margin = _num(ov_inputs, "operatingMargins", "OperatingMarginTTM")
-            if operating_margin is None and ebit is not None and _num(i0, "totalRevenue"):
+            rev_om = _num(i0, "totalRevenue")
+            if operating_margin is None and ebit is not None and rev_om is not None and rev_om:
                 with contextlib.suppress(ZeroDivisionError):
-                    operating_margin = ebit / _num(i0, "totalRevenue")
+                    operating_margin = ebit / rev_om
 
             roa = _num(ov_inputs, "returnOnAssets", "ReturnOnAssetsTTM")
-            if roa is None and _num(i0, "netIncome") and _num(b0, "totalAssets"):
+            ni_roa = _num(i0, "netIncome")
+            ta = _num(b0, "totalAssets")
+            if roa is None and ni_roa is not None and ta is not None and ni_roa and ta:
                 with contextlib.suppress(ZeroDivisionError):
-                    roa = _num(i0, "netIncome") / _num(b0, "totalAssets")
+                    roa = ni_roa / ta
 
             roe = _num(ov_inputs, "returnOnEquity", "ReturnOnEquityTTM")
-            if roe is None and _num(i0, "netIncome") and _num(b0, "totalStockholderEquity"):
+            ni_roe2 = _num(i0, "netIncome")
+            teq_roe2 = _num(b0, "totalStockholderEquity")
+            if roe is None and ni_roe2 is not None and teq_roe2 is not None and ni_roe2 and teq_roe2:
                 with contextlib.suppress(ZeroDivisionError):
-                    roe = _num(i0, "netIncome") / _num(b0, "totalStockholderEquity")
+                    roe = ni_roe2 / teq_roe2
 
             book_value_per_share = _num(ov_inputs, "bookValue", "BookValue")
             earnings_per_share = (

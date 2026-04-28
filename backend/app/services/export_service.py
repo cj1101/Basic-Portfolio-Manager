@@ -34,7 +34,7 @@ class ExportService:
         rf_series: list,
     ) -> io.BytesIO:
         wb = openpyxl.Workbook()
-        wb.remove(wb.active)
+        wb.remove(wb.worksheets[0])
 
         self._add_fred_graph_sheet(wb, rf_series)
         self._add_market_sheet(wb, spy_bars)
