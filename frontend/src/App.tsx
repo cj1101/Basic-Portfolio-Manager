@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Header } from "./components/Header";
 import { IntroBanner } from "./components/IntroBanner";
 import { TickerBar } from "./components/TickerBar";
@@ -49,16 +49,16 @@ function App() {
     availability: { analytics: false, valuation: false, technical: false },
   });
 
-  function handleAnalyticsLoaded(analytics: AnalyticsPerformanceResult | null) {
+  const handleAnalyticsLoaded = useCallback((analytics: AnalyticsPerformanceResult | null) => {
     setChatPanelData((prev) => ({
       ...prev,
       availability: { ...prev.availability, analytics: analytics != null },
       ...(analytics ? { analytics } : {}),
       ...(analytics == null ? { analytics: undefined } : {}),
     }));
-  }
+  }, []);
 
-  function handleCourseValuationLoaded(valuation: ValuationResult | null) {
+  const handleCourseValuationLoaded = useCallback((valuation: ValuationResult | null) => {
     setChatPanelData((prev) => ({
       ...prev,
       availability: {
@@ -67,18 +67,21 @@ function App() {
       },
       ...(valuation ? { valuation } : {}),
     }));
-  }
+  }, []);
 
-  function handleTechnicalLoaded(payload: {
-    selectedTicker: string;
-    stockDataMap: Record<string, HistoricalResponse>;
-    benchmark: HistoricalResponse;
-  } | null) {
-    setChatPanelData((prev) => ({
-      ...prev,
-      availability: { ...prev.availability, technical: payload != null },
-      ...(payload
-        ? {
+  const handleTechnicalLoaded = useCallback(
+    (
+      payload: {
+        selectedTicker: string;
+        stockDataMap: Record<string, HistoricalResponse>;
+        benchmark: HistoricalResponse;
+      } | null,
+    ) => {
+      setChatPanelData((prev) => ({
+        ...prev,
+        availability: { ...prev.availability, technical: payload != null },
+        ...(payload
+          ? {
             technicalSelectedTicker: payload.selectedTicker,
             technicalHistory: payload.stockDataMap,
             technicalBenchmark: payload.benchmark,
@@ -88,17 +91,19 @@ function App() {
             technicalHistory: undefined,
             technicalBenchmark: undefined,
           }),
-    }));
-  }
+      }));
+    },
+    [],
+  );
 
-  function handleTechnicalValuationLoaded(valuation: ValuationResult | null) {
+  const handleTechnicalValuationLoaded = useCallback((valuation: ValuationResult | null) => {
     if (!valuation) return;
     setChatPanelData((prev) => ({
       ...prev,
       availability: { ...prev.availability, valuation: true },
       valuation,
     }));
-  }
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-800">

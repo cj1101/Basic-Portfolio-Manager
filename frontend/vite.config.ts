@@ -28,6 +28,10 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
     css: false,
+    // CI stability: avoid occasional worker-thread shutdown hangs in Actions.
+    pool: "forks",
+    minWorkers: 1,
+    maxWorkers: 1,
     // Playwright e2e specs live in tests/e2e and have their own runner.
     exclude: ["node_modules", "dist", "tests/e2e/**"],
   },
