@@ -575,7 +575,13 @@ class ValuationService:
             roe = _num(ov_inputs, "returnOnEquity", "ReturnOnEquityTTM")
             ni_roe2 = _num(i0, "netIncome")
             teq_roe2 = _num(b0, "totalStockholderEquity")
-            if roe is None and ni_roe2 is not None and teq_roe2 is not None and ni_roe2 and teq_roe2:
+            if (
+                roe is None
+                and ni_roe2 is not None
+                and teq_roe2 is not None
+                and ni_roe2
+                and teq_roe2
+            ):
                 with contextlib.suppress(ZeroDivisionError):
                     roe = ni_roe2 / teq_roe2
 

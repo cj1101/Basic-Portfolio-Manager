@@ -87,7 +87,7 @@ export interface CorrelationMatrix {
 
 export interface RiskProfile {
   riskAversion: number;
-  targetReturn?: number;
+  targetReturn?: number | undefined;
 }
 
 export interface FrontierPoint {
@@ -137,10 +137,10 @@ export interface Portfolio {
   name: string;
   tickers: Ticker[];
   riskProfile: RiskProfile;
-  returnFrequency?: ReturnFrequency;
-  lookbackYears?: number;
-  allowShort?: boolean;
-  allowLeverage?: boolean;
+  returnFrequency?: ReturnFrequency | undefined;
+  lookbackYears?: number | undefined;
+  allowShort?: boolean | undefined;
+  allowLeverage?: boolean | undefined;
 }
 
 export interface SavedPortfolio extends Portfolio {
@@ -185,13 +185,67 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface ChatOptimizationInputs {
+  tickers: Ticker[];
+  riskProfile: RiskProfile;
+  returnFrequency: ReturnFrequency;
+  lookbackYears: number;
+  allowShort: boolean;
+  allowLeverage: boolean;
+  useHistoricalAsOf: boolean;
+  asOf?: string | undefined;
+}
+
+export interface TopHolding {
+  ticker: Ticker;
+  weight: number;
+}
+
+export interface PortfolioSnapshot {
+  requestId?: string | undefined;
+  asOf?: string | undefined;
+  riskFreeRate?: number | undefined;
+  orpExpectedReturn?: number | undefined;
+  orpStdDev?: number | undefined;
+  orpSharpe?: number | undefined;
+  completeExpectedReturn?: number | undefined;
+  completeStdDev?: number | undefined;
+  yStar?: number | undefined;
+  leverageUsed?: boolean | undefined;
+  topHoldings: TopHolding[];
+  warnings: string[];
+}
+
+export interface LoadedPanelAvailability {
+  analytics: boolean;
+  valuation: boolean;
+  technical: boolean;
+}
+
+export interface LoadedPanelData {
+  availability: LoadedPanelAvailability;
+  analytics?: AnalyticsPerformanceResult | undefined;
+  valuation?: ValuationResult | undefined;
+  technicalSelectedTicker?: Ticker | undefined;
+  technicalHistory?: Record<Ticker, HistoricalResponse> | undefined;
+  technicalBenchmark?: HistoricalResponse | undefined;
+}
+
+export interface ChatContext {
+  optimizationInputs: ChatOptimizationInputs;
+  activeTab?: string | undefined;
+  portfolioSnapshot?: PortfolioSnapshot | undefined;
+  loadedPanelData?: LoadedPanelData | undefined;
+}
+
 export interface ChatRequest {
   messages: ChatMessage[];
-  portfolioContext?: OptimizationResult;
-  mode?: ChatMode;
-  sessionId?: string;
+  portfolioContext?: OptimizationResult | undefined;
+  chatContext?: ChatContext | undefined;
+  mode?: ChatMode | undefined;
+  sessionId?: string | undefined;
   /** OpenRouter model slug (e.g. "google/gemma-4-31b-it"). */
-  model?: string;
+  model?: string | undefined;
 }
 
 export interface LLMModelPricing {
@@ -242,12 +296,17 @@ export interface UpdateApiKeyResponse {
 export interface ChatCitation {
   label: string;
   value: string;
+  sourceType?: "context" | "tool" | "rule" | "llm" | undefined;
+  toolName?: string | undefined;
+  scope?: string | undefined;
+  asOf?: string | undefined;
 }
 
 export interface ChatResponse {
   answer: string;
   source: ChatSource;
   citations: ChatCitation[];
+  toolInvocations?: string[] | undefined;
 }
 
 export interface ChatHistoryEntry {
@@ -260,7 +319,7 @@ export interface ChatHistoryEntry {
 
 export interface ChatSessionResponse {
   sessionId: string;
-  portfolioId?: string;
+  portfolioId?: string | undefined;
   createdAt: string;
   updatedAt: string;
   messages: ChatHistoryEntry[];

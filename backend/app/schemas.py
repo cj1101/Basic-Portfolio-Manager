@@ -124,14 +124,72 @@ class ChatMessage(_CamelModel):
     content: str
 
 
+class ChatOptimizationInputs(_CamelModel):
+    tickers: list[Ticker] = Field(min_length=2, max_length=30)
+    risk_profile: RiskProfile
+    return_frequency: ReturnFrequency = ReturnFrequency.DAILY
+    lookback_years: int = Field(default=5, ge=1, le=20)
+    allow_short: bool = True
+    allow_leverage: bool = True
+    use_historical_as_of: bool = False
+    as_of: Date | None = None
+
+
+class TopHolding(_CamelModel):
+    ticker: Ticker
+    weight: float
+
+
+class PortfolioSnapshot(_CamelModel):
+    request_id: str | None = None
+    as_of: datetime | None = None
+    risk_free_rate: float | None = None
+    orp_expected_return: float | None = None
+    orp_std_dev: float | None = None
+    orp_sharpe: float | None = None
+    complete_expected_return: float | None = None
+    complete_std_dev: float | None = None
+    y_star: float | None = None
+    leverage_used: bool | None = None
+    top_holdings: list[TopHolding] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
+class LoadedPanelAvailability(_CamelModel):
+    analytics: bool = False
+    valuation: bool = False
+    technical: bool = False
+
+
+class LoadedPanelData(_CamelModel):
+    availability: LoadedPanelAvailability = Field(default_factory=LoadedPanelAvailability)
+    analytics: AnalyticsPerformanceResult | None = None
+    valuation: ValuationResult | None = None
+    technical_selected_ticker: Ticker | None = None
+    technical_history: dict[Ticker, HistoricalResponse] | None = None
+    technical_benchmark: HistoricalResponse | None = None
+
+
+class ChatContext(_CamelModel):
+    optimization_inputs: ChatOptimizationInputs
+    active_tab: str | None = None
+    portfolio_snapshot: PortfolioSnapshot | None = None
+    loaded_panel_data: LoadedPanelData | None = None
+
+
 class ChatCitation(_CamelModel):
     label: str
     value: str
+    source_type: Literal["context", "tool", "rule", "llm"] | None = None
+    tool_name: str | None = None
+    scope: str | None = None
+    as_of: str | None = None
 
 
 class ChatRequest(_CamelModel):
     messages: list[ChatMessage] = Field(min_length=1, max_length=50)
     portfolio_context: OptimizationResult | None = None
+    chat_context: ChatContext | None = None
     mode: ChatMode = ChatMode.AUTO
     session_id: str | None = None
     # OpenRouter model slug selected by the user in the frontend Settings
@@ -146,6 +204,7 @@ class ChatResponse(_CamelModel):
     answer: str
     source: ChatSource
     citations: list[ChatCitation] = Field(default_factory=list)
+    tool_invocations: list[str] = Field(default_factory=list)
 
 
 class ChatHistoryEntry(_CamelModel):
@@ -376,10 +435,12 @@ __all__ = [
     "ORP",
     "ORPPerformanceMetrics",
     "CALPoint",
+    "ChatContext",
     "ChatCitation",
     "ChatHistoryEntry",
     "ChatMessage",
     "ChatMode",
+    "ChatOptimizationInputs",
     "ChatRequest",
     "ChatResponse",
     "ChatSessionResponse",
@@ -392,10 +453,13 @@ __all__ = [
     "ErrorEnvelope",
     "FrontierPoint",
     "HistoricalResponse",
+    "LoadedPanelAvailability",
+    "LoadedPanelData",
     "ApiKeyName",
     "MarketMetrics",
     "OptimizationRequest",
     "OptimizationResult",
+    "PortfolioSnapshot",
     "PriceBar",
     "Quote",
     "ReturnFrequency",
@@ -404,6 +468,7 @@ __all__ = [
     "StockMetrics",
     "Ticker",
     "TickerValuationBlock",
+    "TopHolding",
     "UpdateApiKeyRequest",
     "UpdateApiKeyResponse",
     "ValuationRequest",

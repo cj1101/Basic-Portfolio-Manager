@@ -1,11 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { usePortfolio } from "@/state/portfolioContext";
 import { useHistoricalBulk } from "@/lib/queries";
 import { MovingAverageChart } from "../charts/MovingAverageChart";
 import { RelativeStrengthChart } from "../charts/RelativeStrengthChart";
 import { TechnicalWriteUp } from "./TechnicalWriteUp";
 import { postValuation, ApiError } from "@/lib/api";
-import type { ValuationResult } from "@/types/contracts";
+import type { HistoricalResponse, ValuationResult } from "@/types/contracts";
 import { Loader2 } from "lucide-react";
 
 // ---- valuation retry logic (mirrors CourseMetricsTab) ----
@@ -29,7 +29,19 @@ function isThrottleError(e: unknown): boolean {
   );
 }
 
-export function TechnicalAnalysisTab() {
+export interface TechnicalAnalysisTabProps {
+  onTechnicalDataLoaded?: (payload: {
+    selectedTicker: string;
+    stockDataMap: Record<string, HistoricalResponse>;
+    benchmark: HistoricalResponse;
+  } | null) => void;
+  onValuationLoaded?: (valuation: ValuationResult | null) => void;
+}
+
+export function TechnicalAnalysisTab({
+  onTechnicalDataLoaded,
+  onValuationLoaded,
+}: TechnicalAnalysisTabProps) {
   const { tickers, optimizationRequest } = usePortfolio();
 
   // Ticker selected for the interactive charts
@@ -66,6 +78,44 @@ export function TechnicalAnalysisTab() {
   for (const ticker of tickers) {
     stockDataMap[ticker] = queries.find((q) => q.data?.ticker === ticker)?.data?.bars || [];
   }
+  const technicalHistoryPayload = useMemo<Record<string, HistoricalResponse> | null>(() => {
+    if (isLoading || isError) return null;
+    const entries: Array<readonly [string, HistoricalResponse]> = [];
+    for (const ticker of tickers) {
+      const query = queries.find((q) => q.data?.ticker === ticker);
+      if (query?.data) {
+        entries.push([ticker, query.data] as const);
+      }
+    }
+    if (entries.length !== tickers.length) return null;
+    return Object.fromEntries(entries);
+  }, [isError, isLoading, queries, tickers]);
+
+  const benchmarkPayload = useMemo<HistoricalResponse | null>(() => {
+    if (isLoading || isError) return null;
+    return queries.find((q) => q.data?.ticker === "SPY")?.data ?? null;
+  }, [isError, isLoading, queries]);
+
+  useEffect(() => {
+    if (!technicalHistoryPayload || !benchmarkPayload) {
+      onTechnicalDataLoaded?.(null);
+      return;
+    }
+    onTechnicalDataLoaded?.({
+      selectedTicker,
+      stockDataMap: technicalHistoryPayload,
+      benchmark: benchmarkPayload,
+    });
+  }, [
+    benchmarkPayload,
+    onTechnicalDataLoaded,
+    selectedTicker,
+    technicalHistoryPayload,
+  ]);
+
+  useEffect(() => {
+    onValuationLoaded?.(valuation);
+  }, [onValuationLoaded, valuation]);
 
   const loadValuation = useCallback(async () => {
     setValuationErr(null);

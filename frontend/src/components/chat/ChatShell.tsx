@@ -7,9 +7,11 @@ import type {
   ChatMode,
   ChatRequest,
   CompletePortfolio,
+  LoadedPanelData,
   OptimizationResult,
 } from "@/types/contracts";
 import { ApiError } from "@/lib/api";
+import { buildChatContext } from "@/lib/chatContext";
 import {
   useChatSession,
   useDeleteChatSession,
@@ -84,7 +86,12 @@ function toUi(entry: ChatHistoryEntry): UiMessage {
   return entry.source ? { ...base, source: entry.source } : base;
 }
 
-export function ChatShell() {
+export interface ChatShellProps {
+  activeTab?: string;
+  loadedPanelData?: LoadedPanelData;
+}
+
+export function ChatShell({ activeTab, loadedPanelData }: ChatShellProps) {
   const [open, setOpen] = useState(false);
   const [sessionId, setSessionId] = useState<string>("");
   const [draft, setDraft] = useState("");
@@ -155,6 +162,19 @@ export function ChatShell() {
       mode,
       sessionId,
       ...(settings?.llmModel ? { model: settings.llmModel } : {}),
+      chatContext: buildChatContext({
+        tickers: portfolio.tickers,
+        returnFrequency: portfolio.returnFrequency,
+        lookbackYears: portfolio.lookbackYears,
+        allowShort: portfolio.allowShort,
+        allowLeverage: portfolio.allowLeverage,
+        riskProfile: portfolio.riskProfile,
+        useHistoricalAsOf: portfolio.useHistoricalAsOf,
+        asOfDate: portfolio.asOfDate,
+        activeTab,
+        result: serverContext,
+        loadedPanelData,
+      }),
       ...(serverContext
         ? { portfolioContext: stripDerivedComplete(serverContext) }
         : {}),
@@ -283,6 +303,7 @@ export function ChatShell() {
                         <li
                           key={`${c.label}-${idx}`}
                           className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600"
+                          title={c.toolName ? `${c.toolName}${c.scope ? ` · ${c.scope}` : ""}` : undefined}
                         >
                           <span className="text-slate-500">{c.label}</span>
                           <span className="font-semibold text-slate-800">{c.value}</span>

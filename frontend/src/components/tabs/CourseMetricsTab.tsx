@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
   LineChart,
@@ -46,7 +46,15 @@ function fmtPct(x: number | null | undefined, digits = 4): string {
   return `${(x * 100).toFixed(digits)}%`;
 }
 
-export function CourseMetricsTab() {
+export interface CourseMetricsTabProps {
+  onAnalyticsLoaded?: (analytics: AnalyticsPerformanceResult | null) => void;
+  onValuationLoaded?: (valuation: ValuationResult | null) => void;
+}
+
+export function CourseMetricsTab({
+  onAnalyticsLoaded,
+  onValuationLoaded,
+}: CourseMetricsTabProps) {
   const { optimizationRequest, result } = usePortfolio();
   const tickers = optimizationRequest.tickers;
   const [analytics, setAnalytics] = useState<AnalyticsPerformanceResult | null>(null);
@@ -55,6 +63,14 @@ export function CourseMetricsTab() {
   const [loading, setLoading] = useState(false);
   const [loadingVal, setLoadingVal] = useState(false);
   const [valuationThrottleAttempt, setValuationThrottleAttempt] = useState(0);
+
+  useEffect(() => {
+    onAnalyticsLoaded?.(analytics);
+  }, [analytics, onAnalyticsLoaded]);
+
+  useEffect(() => {
+    onValuationLoaded?.(valuation);
+  }, [valuation, onValuationLoaded]);
 
   const loadAnalytics = useCallback(async () => {
     setErr(null);

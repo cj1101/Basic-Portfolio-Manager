@@ -44,6 +44,7 @@ async def post_chat(
     response = await chat_service.answer(
         messages=list(body.messages),
         context=body.portfolio_context,
+        chat_context=body.chat_context,
         mode=body.mode,
         model=body.model,
     )
@@ -94,6 +95,7 @@ async def post_chat_session_message(
     response = await chat_service.answer(
         messages=list(body.messages),
         context=body.portfolio_context,
+        chat_context=body.chat_context,
         mode=body.mode,
         model=body.model,
     )

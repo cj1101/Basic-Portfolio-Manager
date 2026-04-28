@@ -13,6 +13,12 @@ import { CourseMetricsTab } from "./components/tabs/CourseMetricsTab";
 import { TechnicalAnalysisTab } from "./components/tabs/TechnicalAnalysisTab";
 import { ChatShell } from "./components/chat/ChatShell";
 import { ResultBoundary } from "./components/ui/ResultBoundary";
+import type {
+  AnalyticsPerformanceResult,
+  HistoricalResponse,
+  LoadedPanelData,
+  ValuationResult,
+} from "./types/contracts";
 
 function TabPanel({
   id,
@@ -39,6 +45,60 @@ function TabPanel({
 
 function App() {
   const [active, setActive] = useState<TabId>("overview");
+  const [chatPanelData, setChatPanelData] = useState<LoadedPanelData>({
+    availability: { analytics: false, valuation: false, technical: false },
+  });
+
+  function handleAnalyticsLoaded(analytics: AnalyticsPerformanceResult | null) {
+    setChatPanelData((prev) => ({
+      ...prev,
+      availability: { ...prev.availability, analytics: analytics != null },
+      ...(analytics ? { analytics } : {}),
+      ...(analytics == null ? { analytics: undefined } : {}),
+    }));
+  }
+
+  function handleCourseValuationLoaded(valuation: ValuationResult | null) {
+    setChatPanelData((prev) => ({
+      ...prev,
+      availability: {
+        ...prev.availability,
+        valuation: valuation != null || prev.availability.valuation,
+      },
+      ...(valuation ? { valuation } : {}),
+    }));
+  }
+
+  function handleTechnicalLoaded(payload: {
+    selectedTicker: string;
+    stockDataMap: Record<string, HistoricalResponse>;
+    benchmark: HistoricalResponse;
+  } | null) {
+    setChatPanelData((prev) => ({
+      ...prev,
+      availability: { ...prev.availability, technical: payload != null },
+      ...(payload
+        ? {
+            technicalSelectedTicker: payload.selectedTicker,
+            technicalHistory: payload.stockDataMap,
+            technicalBenchmark: payload.benchmark,
+          }
+        : {
+            technicalSelectedTicker: undefined,
+            technicalHistory: undefined,
+            technicalBenchmark: undefined,
+          }),
+    }));
+  }
+
+  function handleTechnicalValuationLoaded(valuation: ValuationResult | null) {
+    if (!valuation) return;
+    setChatPanelData((prev) => ({
+      ...prev,
+      availability: { ...prev.availability, valuation: true },
+      valuation,
+    }));
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 pb-24 text-slate-800">
@@ -79,12 +139,18 @@ function App() {
           </TabPanel>
           <TabPanel id="course" hidden={active !== "course"}>
             <ResultBoundary>
-              <CourseMetricsTab />
+              <CourseMetricsTab
+                onAnalyticsLoaded={handleAnalyticsLoaded}
+                onValuationLoaded={handleCourseValuationLoaded}
+              />
             </ResultBoundary>
           </TabPanel>
           <TabPanel id="technical" hidden={active !== "technical"}>
             <ResultBoundary>
-              <TechnicalAnalysisTab />
+              <TechnicalAnalysisTab
+                onTechnicalDataLoaded={handleTechnicalLoaded}
+                onValuationLoaded={handleTechnicalValuationLoaded}
+              />
             </ResultBoundary>
           </TabPanel>
           <TabPanel id="data" hidden={active !== "data"}>
@@ -92,7 +158,7 @@ function App() {
           </TabPanel>
         </section>
       </main>
-      <ChatShell />
+      <ChatShell activeTab={active} loadedPanelData={chatPanelData} />
     </div>
   );
 }

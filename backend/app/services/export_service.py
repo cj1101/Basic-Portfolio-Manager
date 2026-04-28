@@ -78,9 +78,7 @@ def _nominal_px(bar: Any) -> float:
     c = getattr(bar, "close_nominal", None)
     if c is not None:
         return float(c)
-    raise ValueError(
-        "PriceBar missing close_nominal; cannot write regular close to the workbook"
-    )
+    raise ValueError("PriceBar missing close_nominal; cannot write regular close to the workbook")
 
 
 class ExportService:
@@ -248,9 +246,9 @@ class ExportService:
         cov_r0 = last_data_row + 3
         start_cov = orp_col + 2
         exc_col = start_cov + n_t  # first column to the right of the n x n cov block
-        ws.cell(row=cov_r0 - 1, column=1, value="Covariance annual (COVARIANCE.S × k)").font = (
-            self.bold_font
-        )
+        ws.cell(
+            row=cov_r0 - 1, column=1, value="Covariance annual (COVARIANCE.S × k)"
+        ).font = self.bold_font
         for ii in range(n_t):
             ci = get_column_letter(idx0 + ii)
             for jj in range(n_t):
@@ -480,7 +478,9 @@ class ExportService:
                 continue
             last_row = len(block.historical_prices) + 1
 
-            ws.cell(row=1, column=col_off, value=f"{ticker} Regression Output").font = self.title_font
+            ws.cell(
+                row=1, column=col_off, value=f"{ticker} Regression Output"
+            ).font = self.title_font
             ws.cell(row=3, column=col_off, value="Regression Statistics").font = self.bold_font
 
             y = f"'{ticker}'!J3:J{last_row}"
@@ -529,10 +529,14 @@ class ExportService:
         modeled_fcfe_rows: dict[str, int] = {}
         for v in valuation.per_ticker:
             d = drivers_by.get(v.ticker)
-            ws.cell(row=r, column=1, value=f"{v.ticker} Fundamental Valuation").font = self.title_font
+            ws.cell(
+                row=r, column=1, value=f"{v.ticker} Fundamental Valuation"
+            ).font = self.title_font
             r += 1
 
-            ws.cell(row=r, column=1, value="Export overrides (annualized decimals)").font = self.bold_font
+            ws.cell(
+                row=r, column=1, value="Export overrides (annualized decimals)"
+            ).font = self.bold_font
             r += 1
 
             r_ov_wacc = r
@@ -556,9 +560,9 @@ class ExportService:
             self._percent_input_cell(ws, r, 2, req.cost_of_equity_override)
             r += 2
 
-            ws.cell(row=r, column=1, value="Fundamentals & DCF drivers (inputs col B; modeled col C)").font = (
-                self.bold_font
-            )
+            ws.cell(
+                row=r, column=1, value="Fundamentals & DCF drivers (inputs col B; modeled col C)"
+            ).font = self.bold_font
             r += 1
 
             if d is not None:
@@ -620,7 +624,9 @@ class ExportService:
                 r_kdb = r
                 ws.cell(row=r, column=1, value="Cost of debt kd (pretax)")
                 if d.cost_of_debt_pretax is not None:
-                    ws.cell(row=r, column=2, value=float(d.cost_of_debt_pretax)).number_format = "0.00%"
+                    ws.cell(
+                        row=r, column=2, value=float(d.cost_of_debt_pretax)
+                    ).number_format = "0.00%"
                 r += 1
             else:
                 r_rf_capm = r
@@ -685,7 +691,7 @@ class ExportService:
                     row=r,
                     column=3,
                     value=(
-                        f"=IF(OR({_ref(r_fun)}=\"TRUE\",NOT(ISNUMBER({_ref(r_ebit_b)}))),\"\","
+                        f'=IF(OR({_ref(r_fun)}="TRUE",NOT(ISNUMBER({_ref(r_ebit_b)}))),"",'
                         f"{_ref(r_ebit_b)}*(1-{_ref(r_taxb)})+{_ref(r_deprb)}"
                         f"-{_ref(r_capxb)}-{_ref(r_dnwc)})"
                     ),
@@ -702,7 +708,7 @@ class ExportService:
                     row=r,
                     column=3,
                     value=(
-                        f"=IF(NOT(ISNUMBER({_cref(r_fcff)})),\"\","
+                        f'=IF(NOT(ISNUMBER({_cref(r_fcff)})),"",'
                         f"{_cref(r_fcff)}-{_ref(r_intb)}*(1-{_ref(r_taxb)})+{_ref(r_nbb)})"
                     ),
                 )
@@ -727,7 +733,7 @@ class ExportService:
             c_fcfg = ws.cell(row=r, column=3)
             c_fcfg.value = (
                 f"=IF(NOT(ISBLANK({_ref(r_ov_gfcfe)})),{_ref(r_ov_gfcfe)},"
-                f'IF(ISBLANK({_ref(r_gsus)}),0.02,{_ref(r_gsus)}))'
+                f"IF(ISBLANK({_ref(r_gsus)}),0.02,{_ref(r_gsus)}))"
             )
             c_fcfg.number_format = "0.00%"
             r += 1
@@ -743,7 +749,7 @@ class ExportService:
             c_gordon = ws.cell(row=r, column=3)
             c_gordon.value = (
                 f"=IF(NOT(ISBLANK({_ref(r_ov_gdd)})),{_ref(r_ov_gdd)},"
-                f'IF(ISBLANK({_ref(r_gsus)}),0.02,{_ref(r_gsus)}))'
+                f"IF(ISBLANK({_ref(r_gsus)}),0.02,{_ref(r_gsus)}))"
             )
             c_gordon.number_format = "0.00%"
             r += 1
@@ -751,9 +757,7 @@ class ExportService:
             r_ke_use = r
             ws.cell(row=r, column=1, value="k_e used (override or modeled)")
             c_ke_use = ws.cell(row=r, column=3)
-            c_ke_use.value = (
-                f"=IF(NOT(ISBLANK({_ref(r_ov_ke)})),{_ref(r_ov_ke)},{_cref(r_ke)})"
-            )
+            c_ke_use.value = f"=IF(NOT(ISBLANK({_ref(r_ov_ke)})),{_ref(r_ov_ke)},{_cref(r_ke)})"
             c_ke_use.number_format = "0.00%"
             r += 1
 
@@ -771,7 +775,7 @@ class ExportService:
             c_ef.value = (
                 f"=IF(AND(ISNUMBER({_cref(r_fcff)}),{_cref(r_w_use)}>{_cref(r_term)}),"
                 f"{_cref(r_fcff)}*(1+{_cref(r_term)})"
-                f"/({_cref(r_w_use)}-{_cref(r_term)}),\"\")"
+                f'/({_cref(r_w_use)}-{_cref(r_term)}),"")'
             )
             c_ef.number_format = "#,##0"
             r += 1
@@ -781,14 +785,14 @@ class ExportService:
             c_ee.value = (
                 f"=IF(AND(ISNUMBER({_cref(r_fcfe)}),{_cref(r_ke_use)}>{_cref(r_fcfe_g)}),"
                 f"{_cref(r_fcfe)}*(1+{_cref(r_fcfe_g)})"
-                f"/({_cref(r_ke_use)}-{_cref(r_fcfe_g)}),\"\")"
+                f'/({_cref(r_ke_use)}-{_cref(r_fcfe_g)}),"")'
             )
             c_ee.number_format = "#,##0"
             r += 1
 
-            ws.cell(row=r, column=1, value="Multiples & intrinsic value (API snapshot in col D)").font = (
-                self.bold_font
-            )
+            ws.cell(
+                row=r, column=1, value="Multiples & intrinsic value (API snapshot in col D)"
+            ).font = self.bold_font
             r += 1
 
             ws.cell(row=r, column=1, value="P/E (trailing)")
@@ -796,7 +800,7 @@ class ExportService:
             if v.price_to_earnings is not None:
                 pe_d.value = float(v.price_to_earnings)
                 pe_d.number_format = "0.0"
-            ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
+            ws.cell(row=r, column=3, value=f'=IF(ISNUMBER({_dref(r)}),{_dref(r)},"")')
             r += 1
 
             ws.cell(row=r, column=1, value="P/B")
@@ -804,7 +808,7 @@ class ExportService:
             if v.price_to_book is not None:
                 pb_d.value = float(v.price_to_book)
                 pb_d.number_format = "0.0"
-            ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
+            ws.cell(row=r, column=3, value=f'=IF(ISNUMBER({_dref(r)}),{_dref(r)},"")')
             r += 1
 
             ws.cell(row=r, column=1, value="ROE")
@@ -812,7 +816,7 @@ class ExportService:
             if v.roe is not None:
                 roe_d.value = float(v.roe)
                 roe_d.number_format = "0.00%"
-            ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
+            ws.cell(row=r, column=3, value=f'=IF(ISNUMBER({_dref(r)}),{_dref(r)},"")')
             r += 1
 
             ws.cell(row=r, column=1, value="Gross margin")
@@ -820,7 +824,7 @@ class ExportService:
             if v.gross_margin is not None:
                 gm_d.value = float(v.gross_margin)
                 gm_d.number_format = "0.00%"
-            ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
+            ws.cell(row=r, column=3, value=f'=IF(ISNUMBER({_dref(r)}),{_dref(r)},"")')
             r += 1
 
             ws.cell(row=r, column=1, value="Operating margin")
@@ -828,7 +832,7 @@ class ExportService:
             if v.operating_margin is not None:
                 om_d.value = float(v.operating_margin)
                 om_d.number_format = "0.00%"
-            ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
+            ws.cell(row=r, column=3, value=f'=IF(ISNUMBER({_dref(r)}),{_dref(r)},"")')
             r += 1
 
             ws.cell(row=r, column=1, value="FCFF value per share")
@@ -836,7 +840,7 @@ class ExportService:
             if v.fcff_value_per_share is not None:
                 vps_f.value = float(v.fcff_value_per_share)
                 vps_f.number_format = "$#,##0.00"
-            ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
+            ws.cell(row=r, column=3, value=f'=IF(ISNUMBER({_dref(r)}),{_dref(r)},"")')
             r += 1
 
             ws.cell(row=r, column=1, value="FCFE value per share")
@@ -844,7 +848,7 @@ class ExportService:
             if v.fcfe_value_per_share is not None:
                 vps_e.value = float(v.fcfe_value_per_share)
                 vps_e.number_format = "$#,##0.00"
-            ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
+            ws.cell(row=r, column=3, value=f'=IF(ISNUMBER({_dref(r)}),{_dref(r)},"")')
             r += 1
 
             ws.cell(row=r, column=1, value="Gordon DDM value per share")
@@ -852,7 +856,7 @@ class ExportService:
             if v.ddm_gordon is not None:
                 ddm1_d.value = float(v.ddm_gordon)
                 ddm1_d.number_format = "$#,##0.00"
-            ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
+            ws.cell(row=r, column=3, value=f'=IF(ISNUMBER({_dref(r)}),{_dref(r)},"")')
             r += 1
 
             ws.cell(row=r, column=1, value="2-stage DDM value per share")
@@ -860,12 +864,14 @@ class ExportService:
             if v.ddm_two_stage is not None:
                 ddm2_d.value = float(v.ddm_two_stage)
                 ddm2_d.number_format = "$#,##0.00"
-            ws.cell(row=r, column=3, value=f"=IF(ISNUMBER({_dref(r)}),{_dref(r)},\"\")")
+            ws.cell(row=r, column=3, value=f'=IF(ISNUMBER({_dref(r)}),{_dref(r)},"")')
             r += 2
 
         if modeled_ke_rows:
             r += 2
-            ws.cell(row=r, column=1, value="Portfolio — ORP-weighted modeled rows").font = self.title_font
+            ws.cell(
+                row=r, column=1, value="Portfolio — ORP-weighted modeled rows"
+            ).font = self.title_font
             r += 1
             tickers_o = [s.ticker for s in optimize.stocks]
 
@@ -954,9 +960,7 @@ class ExportService:
         ws.cell(
             row=r,
             column=3,
-            value=(
-                f"=({treynor_avg}*'{oi}'!$B$1-'{oi}'!$B$2)/{treynor_betas}"
-            ),
+            value=(f"=({treynor_avg}*'{oi}'!$B$1-'{oi}'!$B$2)/{treynor_betas}"),
         )
         ws.cell(row=r, column=3).number_format = "0.000"
         # #region agent log
@@ -1004,9 +1008,9 @@ class ExportService:
         r += 1
 
         r += 1
-        ws.cell(row=r, column=1, value="Fama-French 3-Factor Model (FF3 Monthly sheet)").font = (
-            self.bold_font
-        )
+        ws.cell(
+            row=r, column=1, value="Fama-French 3-Factor Model (FF3 Monthly sheet)"
+        ).font = self.bold_font
         r += 1
         headers = [
             "Ticker",
@@ -1024,7 +1028,9 @@ class ExportService:
         r += 1
 
         if ff3_missing:
-            ws.cell(row=r, column=1, value="(No aligned monthly history / factors for FF3 in workbook)")
+            ws.cell(
+                row=r, column=1, value="(No aligned monthly history / factors for FF3 in workbook)"
+            )
             return
 
         ff_ws = wb["FF3 Monthly"]
@@ -1087,8 +1093,12 @@ class ExportService:
                 ),
             )
             ws.cell(row=ff_row, column=7).number_format = "0.00%"
-            ws.cell(row=ff_row, column=8, value=float(f.expected_return_ff3)).number_format = "0.00%"
-            ws.cell(row=ff_row, column=9, value=float(f.expected_return_capm)).number_format = "0.00%"
+            ws.cell(
+                row=ff_row, column=8, value=float(f.expected_return_ff3)
+            ).number_format = "0.00%"
+            ws.cell(
+                row=ff_row, column=9, value=float(f.expected_return_capm)
+            ).number_format = "0.00%"
             ff_row += 1
 
     def _add_portfolio_org_sheet(
@@ -1132,7 +1142,9 @@ class ExportService:
         )
         # #endregion
 
-        ws.cell(row=1, column=1, value="Complete portfolio — inputs & CAL math").font = self.title_font
+        ws.cell(
+            row=1, column=1, value="Complete portfolio — inputs & CAL math"
+        ).font = self.title_font
         ws.cell(row=2, column=1, value="Field").font = self.bold_font
         ws.cell(row=2, column=2, value="Modeled (formula)").font = self.bold_font
         ws.cell(row=2, column=4, value="Backend snapshot").font = self.bold_font
@@ -1172,9 +1184,7 @@ class ExportService:
         r_var = r
         ws.cell(row=r, column=1, value="Variance ORP = w'Σw (sample cov × k)")
         orp_col_letter = get_column_letter(orp_col)
-        variance_inner = (
-            f"VAR.S('Optimize Inputs'!{orp_col_letter}{first_data_row}:{orp_col_letter}{last_data_row})"
-        )
+        variance_inner = f"VAR.S('Optimize Inputs'!{orp_col_letter}{first_data_row}:{orp_col_letter}{last_data_row})"
         ws.cell(
             row=r,
             column=2,
@@ -1263,9 +1273,9 @@ class ExportService:
             r += 1
 
         r += 1
-        ws.cell(row=r, column=1, value="Correlation matrix (from aligned log returns)").font = (
-            self.bold_font
-        )
+        ws.cell(
+            row=r, column=1, value="Correlation matrix (from aligned log returns)"
+        ).font = self.bold_font
         r += 1
         ts = [s.ticker for s in optimize.stocks]
         for j, t in enumerate(ts, 2):

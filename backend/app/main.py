@@ -29,6 +29,7 @@ from app.errors import (
 )
 from app.services.chat.llm import build_openrouter_client
 from app.services.chat.service import ChatService
+from app.services.chat.tools import ChatToolbox
 from app.settings import Settings, get_settings
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ async def build_state(settings: Settings) -> AppState:
         logger.info(
             "OPENROUTER_API_KEY is not set; /api/chat will operate in rule-only mode."
         )
-    chat_service = ChatService(llm=openrouter_client)
+    chat_service = ChatService(llm=openrouter_client, toolbox=ChatToolbox(service))
 
     return AppState(
         settings=settings,
