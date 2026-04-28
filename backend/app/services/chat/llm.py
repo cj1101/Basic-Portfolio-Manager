@@ -232,7 +232,9 @@ def _serialize_compact_context(
 ) -> str:
     if chat_context is not None:
         return json.dumps(
-            _round_floats(chat_context.model_dump(mode="json", by_alias=True, exclude_none=True), 4),
+            _round_floats(
+                chat_context.model_dump(mode="json", by_alias=True, exclude_none=True), 4
+            ),
             separators=(",", ":"),
         )
     return _serialize_context(context)
@@ -298,6 +300,7 @@ def _raise_llm_unavailable(exc: BaseException) -> None:
             RateLimitError,
         )
     except ImportError:  # pragma: no cover
+
         class _Missing(Exception):
             pass
 

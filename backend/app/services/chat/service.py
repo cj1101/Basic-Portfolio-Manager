@@ -74,7 +74,9 @@ class ChatService:
         if match is not None:
             answer, citations = render_rule_answer(match, context, messages)
             citations = [
-                citation if citation.source_type is not None else citation.model_copy(update={"source_type": "rule"})
+                citation
+                if citation.source_type is not None
+                else citation.model_copy(update={"source_type": "rule"})
                 for citation in citations
             ]
             logger.info("chat: rule hit intent=%s ticker=%s", match.intent.value, match.ticker)

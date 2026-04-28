@@ -217,7 +217,9 @@ class ChatToolbox:
             )
         if name == "get_loaded_panel_data":
             panel = str(arguments.get("panel") or "all")
-            payload = _loaded_panel_payload(chat_context.loaded_panel_data if chat_context else None, panel)
+            payload = _loaded_panel_payload(
+                chat_context.loaded_panel_data if chat_context else None, panel
+            )
             return ToolExecutionResult(
                 name=name,
                 payload=payload,
@@ -236,13 +238,19 @@ class ChatToolbox:
             result = await self._optimize.run(req, data_service=self._data_service)
             return ToolExecutionResult(
                 name=name,
-                payload={"optimization_result": result.result.model_dump(mode="json", by_alias=True)},
-                citations=_snapshot_citations(build_portfolio_snapshot(result.result), tool_name=name),
+                payload={
+                    "optimization_result": result.result.model_dump(mode="json", by_alias=True)
+                },
+                citations=_snapshot_citations(
+                    build_portfolio_snapshot(result.result), tool_name=name
+                ),
             )
         if name == "get_quote":
             ticker = str(arguments["ticker"]).upper().strip()
             result = await self._data_service.get_quote(ticker)
-            quote = Quote(ticker=result.quote.ticker, price=result.quote.price, as_of=result.quote.as_of)
+            quote = Quote(
+                ticker=result.quote.ticker, price=result.quote.price, as_of=result.quote.as_of
+            )
             return ToolExecutionResult(
                 name=name,
                 payload={"quote": quote.model_dump(mode="json", by_alias=True)},
@@ -291,7 +299,9 @@ class ChatToolbox:
             as_of = _parse_date_opt(arguments.get("as_of")) or _default_as_of(chat_context)
             window_end = last_trading_day_on_or_before(as_of) if as_of is not None else None
             result = await self._data_service.get_risk_free_rate(window_end=window_end)
-            payload = RiskFreeRateResponse(rate=result.rate, as_of=result.as_of, source=result.source)
+            payload = RiskFreeRateResponse(
+                rate=result.rate, as_of=result.as_of, source=result.source
+            )
             return ToolExecutionResult(
                 name=name,
                 payload={"risk_free_rate": payload.model_dump(mode="json", by_alias=True)},
@@ -424,8 +434,12 @@ def _build_optimization_request(
     target_return = overrides.get("target_return")
     risk_profile = inputs.risk_profile.model_copy(
         update={
-            "risk_aversion": int(overrides.get("risk_aversion") or inputs.risk_profile.risk_aversion),
-            "target_return": target_return if target_return is not None else inputs.risk_profile.target_return,
+            "risk_aversion": int(
+                overrides.get("risk_aversion") or inputs.risk_profile.risk_aversion
+            ),
+            "target_return": target_return
+            if target_return is not None
+            else inputs.risk_profile.target_return,
         }
     )
     return OptimizationRequest(
