@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from datetime import date as Date
 from typing import Any
@@ -10,8 +9,8 @@ from app.data.service import DataService
 from app.errors import AppError
 from app.schemas import (
     AnalyticsPerformanceRequest,
-    ChatContext,
     ChatCitation,
+    ChatContext,
     ChatOptimizationInputs,
     ErrorCode,
     HistoricalResponse,
@@ -436,12 +435,8 @@ def _build_optimization_request(
             str(overrides.get("return_frequency") or inputs.return_frequency.value)
         ),
         lookback_years=int(overrides.get("lookback_years") or inputs.lookback_years),
-        allow_short=bool(
-            overrides["allow_short"] if "allow_short" in overrides else inputs.allow_short
-        ),
-        allow_leverage=bool(
-            overrides["allow_leverage"] if "allow_leverage" in overrides else inputs.allow_leverage
-        ),
+        allow_short=bool(overrides.get("allow_short", inputs.allow_short)),
+        allow_leverage=bool(overrides.get("allow_leverage", inputs.allow_leverage)),
         as_of=_parse_date_opt(overrides.get("as_of")) or inputs.as_of,
     )
 

@@ -10,8 +10,8 @@ from typing import Any
 
 from app.errors import AppError
 from app.schemas import ChatCitation, ChatContext, ChatMessage, OptimizationResult
-from app.settings import Settings
 from app.services.chat.tools import ChatToolbox
+from app.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -342,10 +342,10 @@ OpenAIChatClient = OpenRouterChatClient
 
 
 __all__ = [
-    "LLMAnswer",
     "MAX_HISTORY_TURNS",
     "MAX_OUTPUT_TOKENS",
     "MODEL_SLUG_RE",
+    "LLMAnswer",
     "OpenAIChatClient",
     "OpenRouterChatClient",
     "_serialize_context",
