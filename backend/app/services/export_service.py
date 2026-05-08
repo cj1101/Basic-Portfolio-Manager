@@ -578,7 +578,9 @@ class ExportService:
                 r_mrp = r
                 ws.cell(row=r, column=1, value="Market risk premium (assumption)")
                 if d.market_risk_premium is not None:
-                    ws.cell(row=r, column=2, value=float(d.market_risk_premium)).number_format = "0.00%"
+                    ws.cell(
+                        row=r, column=2, value=float(d.market_risk_premium)
+                    ).number_format = "0.00%"
                 r += 1
                 r_fun = r
                 ws.cell(row=r, column=1, value="Financial sector (FCFF/FCFE omitted if TRUE)")
@@ -612,7 +614,9 @@ class ExportService:
                 r_intb = r
                 ws.cell(row=r, column=1, value="Interest expense (positive magnitude)")
                 if d.interest_expense is not None:
-                    ws.cell(row=r, column=2, value=float(d.interest_expense)).number_format = "#,##0"
+                    ws.cell(
+                        row=r, column=2, value=float(d.interest_expense)
+                    ).number_format = "#,##0"
                 r += 1
                 r_nbb = r
                 ws.cell(row=r, column=1, value="Net borrowing (Δ debt)")
@@ -664,7 +668,7 @@ class ExportService:
                     value=(
                         f"=IF(NOT(ISBLANK({_ref(r_ov_ke)})),{_ref(r_ov_ke)},"
                         f"IF(AND(ISNUMBER({_ref(r_rf_capm)}),ISNUMBER({_ref(r_beta)}),ISNUMBER({_ref(r_mrp)})),"
-                        f"{_ref(r_rf_capm)}+{_ref(r_beta)}*{_ref(r_mrp)},\"\"))"
+                        f'{_ref(r_rf_capm)}+{_ref(r_beta)}*{_ref(r_mrp)},""))'
                     ),
                 )
                 ws.cell(row=r, column=3).number_format = "0.00%"
@@ -692,7 +696,7 @@ class ExportService:
                         f"{_ref(r_mcb)}/{ev_plus_d}*{_cref(r_ke)}+"
                         f"{_ref(r_debtb)}/{ev_plus_d}*{_ref(r_kdb)}*(1-{_ref(r_taxb)}),"
                         f"IF(AND(ISNUMBER({_ref(r_mcb)}),{_ref(r_mcb)}>0,{_ref(r_debtb)}=0,ISNUMBER({_cref(r_ke)})),"
-                        f"{_cref(r_ke)},\"\")))"
+                        f'{_cref(r_ke)},"")))'
                     ),
                 )
                 ws.cell(row=r, column=3).number_format = "0.00%"
@@ -726,7 +730,7 @@ class ExportService:
                     row=r,
                     column=3,
                     value=(
-                        f'=IF(OR(NOT(ISNUMBER({_cref(r_fcff)})),NOT(ISNUMBER({_ref(r_intb)})),'
+                        f"=IF(OR(NOT(ISNUMBER({_cref(r_fcff)})),NOT(ISNUMBER({_ref(r_intb)})),"
                         f'NOT(ISNUMBER({_ref(r_taxb)})),NOT(ISNUMBER({_ref(r_nbb)}))),"",'
                         f"{_cref(r_fcff)}-{_ref(r_intb)}*(1-{_ref(r_taxb)})+{_ref(r_nbb)})"
                     ),
@@ -803,7 +807,9 @@ class ExportService:
             c_fcff_g_used = ws.cell(row=r, column=3, value=f"={_cref(r_term)}")
             c_fcff_g_used.number_format = "0.00%"
             if req.fcff_terminal_growth is not None:
-                ws.cell(row=r, column=4, value=float(req.fcff_terminal_growth)).number_format = "0.00%"
+                ws.cell(
+                    row=r, column=4, value=float(req.fcff_terminal_growth)
+                ).number_format = "0.00%"
             r += 1
 
             ws.cell(row=r, column=1, value="FCFF WACC used")

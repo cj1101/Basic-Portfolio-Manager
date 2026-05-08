@@ -330,9 +330,7 @@ class ValuationService:
                 t_rate = min(max(tax_e / ebt, 0.0), 0.5)
             elif not financial_unsafe and ebit is not None:
                 tw.append("Effective tax rate unavailable; EBIT-based valuation skipped.")
-            depr = _num(
-                c0, "depreciationDepletionAndAmortization", "depreciationAndAmortization"
-            )
+            depr = _num(c0, "depreciationDepletionAndAmortization", "depreciationAndAmortization")
             cap_raw = _num(c0, "capitalExpenditures", "capitalExpenditure")
             capex = abs(float(cap_raw)) if cap_raw is not None else None
             ca0 = _num(b0, "totalCurrentAssets", "currentAssets")
@@ -463,7 +461,9 @@ class ValuationService:
             if k_e is None and beta is not None and mrp is not None:
                 k_e = float(risk_free_rate) + float(beta) * mrp
             elif k_e is None and mrp is None:
-                tw.append("Market risk premium unavailable; CAPM cost of equity cannot be calculated.")
+                tw.append(
+                    "Market risk premium unavailable; CAPM cost of equity cannot be calculated."
+                )
 
             cost_of_debt: float | None = None
             weight_of_equity: float | None = None
