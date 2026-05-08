@@ -338,7 +338,7 @@ class ValuationService:
             ca1 = _num(b1, "totalCurrentAssets", "currentAssets")
             cl1 = _num(b1, "totalCurrentLiabilities", "currentLiabilities")
             delta_nwc: float | None = None
-            if None not in (ca0, cl0, ca1, cl1):
+            if ca0 is not None and cl0 is not None and ca1 is not None and cl1 is not None:
                 nwc0 = float(ca0) - float(cl0)
                 nwc1 = float(ca1) - float(cl1)
                 delta_nwc = nwc0 - nwc1
@@ -370,6 +370,10 @@ class ValuationService:
                 fcff = None
                 fcfe = None
             else:
+                assert t_rate is not None
+                assert depr is not None
+                assert capex is not None
+                assert delta_nwc is not None
                 fcff = fcff_nopat_depre_capex_deltanwc(ebit, t_rate, depr, capex, delta_nwc)
                 if int_exp is None or net_borrowing is None:
                     fcfe = None
@@ -615,6 +619,9 @@ class ValuationService:
 
             if dps is not None and k_e is not None and k_e > 0:
                 try:
+                    g1: float | None
+                    g2: float | None
+                    n_: int
                     if request.ddm_two_stage is not None:
                         g1 = request.ddm_two_stage.g1
                         g2 = request.ddm_two_stage.g2
