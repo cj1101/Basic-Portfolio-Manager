@@ -175,6 +175,57 @@ def dataset_a() -> DatasetAFixture:
     )
 
 
+@dataclass(frozen=True)
+class DatasetCFixture:
+    tickers: tuple[str, ...]
+    mu: NDArray[np.float64]       # annualized expected returns
+    cov: NDArray[np.float64]      # annualized covariance matrix
+    rf: float                      # risk-free rate
+    # Expected outputs (closed-form Σ⁻¹(μ−rf·1), derived May 8 2026)
+    w_tangency: NDArray[np.float64]  # unconstrained tangency weights (sum = 1)
+    er_orp: float                    # ORP expected return
+    var_orp: float                   # ORP variance
+    sd_orp: float                    # ORP std dev
+    sharpe_orp: float                # ORP Sharpe ratio
+
+
+@pytest.fixture(scope="session")
+def dataset_c() -> DatasetCFixture:
+    """Dataset C — 4-stock non-diagonal covariance, closed-form reference (docs/FIXTURES.md §3)."""
+
+    mu = np.array([0.08, 0.12, 0.15, 0.20], dtype=np.float64)
+    cov = np.array(
+        [
+            [0.0400, 0.0300, 0.0060, 0.0080],
+            [0.0300, 0.0625, 0.0075, 0.0100],
+            [0.0060, 0.0075, 0.0900, 0.0600],
+            [0.0080, 0.0100, 0.0600, 0.1600],
+        ],
+        dtype=np.float64,
+    )
+    rf = 0.04
+
+    excess = mu - rf
+    w_raw = np.linalg.solve(cov, excess)
+    w_tang = w_raw / w_raw.sum()
+    er = float(w_tang @ mu)
+    var = float(w_tang @ cov @ w_tang)
+    sd = float(np.sqrt(var))
+    sharpe = (er - rf) / sd
+
+    return DatasetCFixture(
+        tickers=("S1", "S2", "S3", "S4"),
+        mu=mu,
+        cov=cov,
+        rf=rf,
+        w_tangency=w_tang,
+        er_orp=er,
+        var_orp=var,
+        sd_orp=sd,
+        sharpe_orp=sharpe,
+    )
+
+
 @pytest.fixture(scope="session")
 def dataset_a_capm() -> DatasetACAPMFixture:
     """Dataset A single-stock CAPM/SIM test (``docs/FIXTURES.md`` §1)."""

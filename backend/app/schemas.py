@@ -327,15 +327,15 @@ class ValuationExportDrivers(_CamelModel):
 
     ticker: Ticker
     ebit: float | None = None
-    tax_rate: float = 0.21
-    depreciation: float = 0.0
-    capex: float = 0.0
-    delta_nwc: float = 0.0
-    interest_expense: float = 0.0
-    net_borrowing: float = 0.0
+    tax_rate: float | None = None
+    depreciation: float | None = None
+    capex: float | None = None
+    delta_nwc: float | None = None
+    interest_expense: float | None = None
+    net_borrowing: float | None = None
     financial_unsafe: bool = False
-    beta: float = 1.0
-    market_risk_premium: float = 0.05
+    beta: float | None = None
+    market_risk_premium: float | None = None
     risk_free_annual: float
     market_cap: float | None = None
     total_debt: float | None = None
@@ -350,7 +350,7 @@ class TickerValuationBlock(_CamelModel):
     fcfe_value_per_share: float | None
     ddm_gordon: float | None
     ddm_two_stage: float | None
-    cost_of_equity: float
+    cost_of_equity: float | None
     cost_of_debt: float | None = None
     weight_of_equity: float | None = None
     weight_of_debt: float | None = None

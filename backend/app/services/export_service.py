@@ -572,11 +572,13 @@ class ExportService:
                 r += 1
                 r_beta = r
                 ws.cell(row=r, column=1, value="Beta (CAPM)")
-                ws.cell(row=r, column=2, value=float(d.beta)).number_format = "0.000"
+                if d.beta is not None:
+                    ws.cell(row=r, column=2, value=float(d.beta)).number_format = "0.000"
                 r += 1
                 r_mrp = r
                 ws.cell(row=r, column=1, value="Market risk premium (assumption)")
-                ws.cell(row=r, column=2, value=float(d.market_risk_premium)).number_format = "0.00%"
+                if d.market_risk_premium is not None:
+                    ws.cell(row=r, column=2, value=float(d.market_risk_premium)).number_format = "0.00%"
                 r += 1
                 r_fun = r
                 ws.cell(row=r, column=1, value="Financial sector (FCFF/FCFE omitted if TRUE)")
@@ -589,27 +591,33 @@ class ExportService:
                 r += 1
                 r_taxb = r
                 ws.cell(row=r, column=1, value="Effective tax rate Tc")
-                ws.cell(row=r, column=2, value=float(d.tax_rate)).number_format = "0.00%"
+                if d.tax_rate is not None:
+                    ws.cell(row=r, column=2, value=float(d.tax_rate)).number_format = "0.00%"
                 r += 1
                 r_deprb = r
                 ws.cell(row=r, column=1, value="D&A / depreciation")
-                ws.cell(row=r, column=2, value=float(d.depreciation)).number_format = "#,##0"
+                if d.depreciation is not None:
+                    ws.cell(row=r, column=2, value=float(d.depreciation)).number_format = "#,##0"
                 r += 1
                 r_capxb = r
                 ws.cell(row=r, column=1, value="CapEx (positive magnitude)")
-                ws.cell(row=r, column=2, value=float(d.capex)).number_format = "#,##0"
+                if d.capex is not None:
+                    ws.cell(row=r, column=2, value=float(d.capex)).number_format = "#,##0"
                 r += 1
                 r_dnwc = r
                 ws.cell(row=r, column=1, value="ΔNWC (current − prior)")
-                ws.cell(row=r, column=2, value=float(d.delta_nwc)).number_format = "#,##0"
+                if d.delta_nwc is not None:
+                    ws.cell(row=r, column=2, value=float(d.delta_nwc)).number_format = "#,##0"
                 r += 1
                 r_intb = r
                 ws.cell(row=r, column=1, value="Interest expense (positive magnitude)")
-                ws.cell(row=r, column=2, value=float(d.interest_expense)).number_format = "#,##0"
+                if d.interest_expense is not None:
+                    ws.cell(row=r, column=2, value=float(d.interest_expense)).number_format = "#,##0"
                 r += 1
                 r_nbb = r
                 ws.cell(row=r, column=1, value="Net borrowing (Δ debt)")
-                ws.cell(row=r, column=2, value=float(d.net_borrowing)).number_format = "#,##0"
+                if d.net_borrowing is not None:
+                    ws.cell(row=r, column=2, value=float(d.net_borrowing)).number_format = "#,##0"
                 r += 1
                 r_mcb = r
                 ws.cell(row=r, column=1, value="Market cap E")
@@ -655,13 +663,19 @@ class ExportService:
                     column=3,
                     value=(
                         f"=IF(NOT(ISBLANK({_ref(r_ov_ke)})),{_ref(r_ov_ke)},"
-                        f"{_ref(r_rf_capm)}+{_ref(r_beta)}*{_ref(r_mrp)})"
+                        f"IF(AND(ISNUMBER({_ref(r_rf_capm)}),ISNUMBER({_ref(r_beta)}),ISNUMBER({_ref(r_mrp)})),"
+                        f"{_ref(r_rf_capm)}+{_ref(r_beta)}*{_ref(r_mrp)},\"\"))"
                     ),
                 )
                 ws.cell(row=r, column=3).number_format = "0.00%"
             elif v.cost_of_equity is not None:
                 ws.cell(row=r, column=3, value=float(v.cost_of_equity)).number_format = "0.00%"
-            self._percent_input_cell(ws, r, 4, float(v.cost_of_equity))
+            self._percent_input_cell(
+                ws,
+                r,
+                4,
+                float(v.cost_of_equity) if v.cost_of_equity is not None else None,
+            )
             modeled_ke_rows[v.ticker] = r
             r += 1
             r_wacc = r
@@ -673,10 +687,12 @@ class ExportService:
                     column=3,
                     value=(
                         f"=IF(NOT(ISBLANK({_ref(r_ov_wacc)})),{_ref(r_ov_wacc)},"
-                        f"IF(AND(ISNUMBER({_ref(r_mcb)}),ISNUMBER({_ref(r_debtb)}),{ev_plus_d}>0),"
+                        f"IF(AND(ISNUMBER({_ref(r_mcb)}),ISNUMBER({_ref(r_debtb)}),{ev_plus_d}>0,"
+                        f"ISNUMBER({_cref(r_ke)}),ISNUMBER({_ref(r_kdb)}),ISNUMBER({_ref(r_taxb)})),"
                         f"{_ref(r_mcb)}/{ev_plus_d}*{_cref(r_ke)}+"
                         f"{_ref(r_debtb)}/{ev_plus_d}*{_ref(r_kdb)}*(1-{_ref(r_taxb)}),"
-                        f"{_cref(r_ke)}))"
+                        f"IF(AND(ISNUMBER({_ref(r_mcb)}),{_ref(r_mcb)}>0,{_ref(r_debtb)}=0,ISNUMBER({_cref(r_ke)})),"
+                        f"{_cref(r_ke)},\"\")))"
                     ),
                 )
                 ws.cell(row=r, column=3).number_format = "0.00%"
@@ -691,7 +707,9 @@ class ExportService:
                     row=r,
                     column=3,
                     value=(
-                        f'=IF(OR({_ref(r_fun)}="TRUE",NOT(ISNUMBER({_ref(r_ebit_b)}))),"",'
+                        f'=IF(OR({_ref(r_fun)}="TRUE",NOT(ISNUMBER({_ref(r_ebit_b)})),'
+                        f"NOT(ISNUMBER({_ref(r_taxb)})),NOT(ISNUMBER({_ref(r_deprb)})),"
+                        f'NOT(ISNUMBER({_ref(r_capxb)})),NOT(ISNUMBER({_ref(r_dnwc)}))),"",'
                         f"{_ref(r_ebit_b)}*(1-{_ref(r_taxb)})+{_ref(r_deprb)}"
                         f"-{_ref(r_capxb)}-{_ref(r_dnwc)})"
                     ),
@@ -708,7 +726,8 @@ class ExportService:
                     row=r,
                     column=3,
                     value=(
-                        f'=IF(NOT(ISNUMBER({_cref(r_fcff)})),"",'
+                        f'=IF(OR(NOT(ISNUMBER({_cref(r_fcff)})),NOT(ISNUMBER({_ref(r_intb)})),'
+                        f'NOT(ISNUMBER({_ref(r_taxb)})),NOT(ISNUMBER({_ref(r_nbb)}))),"",'
                         f"{_cref(r_fcff)}-{_ref(r_intb)}*(1-{_ref(r_taxb)})+{_ref(r_nbb)})"
                     ),
                 )
@@ -733,7 +752,7 @@ class ExportService:
             c_fcfg = ws.cell(row=r, column=3)
             c_fcfg.value = (
                 f"=IF(NOT(ISBLANK({_ref(r_ov_gfcfe)})),{_ref(r_ov_gfcfe)},"
-                f"IF(ISBLANK({_ref(r_gsus)}),0.02,{_ref(r_gsus)}))"
+                f'IF(ISBLANK({_ref(r_gsus)}),"",{_ref(r_gsus)}))'
             )
             c_fcfg.number_format = "0.00%"
             r += 1
@@ -741,7 +760,7 @@ class ExportService:
             r_term = r
             ws.cell(row=r, column=1, value="FCFF terminal g (Excel)")
             c_ter = ws.cell(row=r, column=3)
-            c_ter.value = f"=IF(ISBLANK({_ref(r_ov_gt)}),0.025,{_ref(r_ov_gt)})"
+            c_ter.value = f'=IF(ISBLANK({_ref(r_ov_gt)}),"",{_ref(r_ov_gt)})'
             c_ter.number_format = "0.00%"
             r += 1
 
@@ -749,7 +768,7 @@ class ExportService:
             c_gordon = ws.cell(row=r, column=3)
             c_gordon.value = (
                 f"=IF(NOT(ISBLANK({_ref(r_ov_gdd)})),{_ref(r_ov_gdd)},"
-                f"IF(ISBLANK({_ref(r_gsus)}),0.02,{_ref(r_gsus)}))"
+                f'IF(ISBLANK({_ref(r_gsus)}),"",{_ref(r_gsus)}))'
             )
             c_gordon.number_format = "0.00%"
             r += 1
@@ -778,6 +797,20 @@ class ExportService:
                 f'/({_cref(r_w_use)}-{_cref(r_term)}),"")'
             )
             c_ef.number_format = "#,##0"
+            r += 1
+
+            ws.cell(row=r, column=1, value="FCFF g used (terminal)")
+            c_fcff_g_used = ws.cell(row=r, column=3, value=f"={_cref(r_term)}")
+            c_fcff_g_used.number_format = "0.00%"
+            if req.fcff_terminal_growth is not None:
+                ws.cell(row=r, column=4, value=float(req.fcff_terminal_growth)).number_format = "0.00%"
+            r += 1
+
+            ws.cell(row=r, column=1, value="FCFF WACC used")
+            c_fcff_wacc_used = ws.cell(row=r, column=3, value=f"={_cref(r_w_use)}")
+            c_fcff_wacc_used.number_format = "0.00%"
+            if v.wacc is not None:
+                ws.cell(row=r, column=4, value=float(v.wacc)).number_format = "0.00%"
             r += 1
 
             ws.cell(row=r, column=1, value="Equity value from FCFE (perpetuity)")

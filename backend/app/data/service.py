@@ -147,7 +147,11 @@ class DataService:
                     bars = [PriceBar(**b) for b in raw_bars]
                     return HistoricalResult(ticker, frequency, bars, cached.source, [])
             return await self._fetch_historical(
-                ticker, frequency=frequency, lookback_years=lookback_years, window_end=window_end
+                ticker,
+                frequency=frequency,
+                lookback_years=lookback_years,
+                window_end=window_end,
+                prefer_yahoo=(as_of is not None),
             )
 
         return await self._cache.run_singleflight(cache_key, _load)
@@ -159,10 +163,15 @@ class DataService:
         frequency: ReturnFrequency,
         lookback_years: int,
         window_end: Date,
+        prefer_yahoo: bool,
     ) -> HistoricalResult:
         warnings: list[str] = []
         daily_bars, source = await self._fetch_daily_bars_with_fallback(
-            ticker, lookback_years=lookback_years, window_end=window_end, warnings=warnings
+            ticker,
+            lookback_years=lookback_years,
+            window_end=window_end,
+            warnings=warnings,
+            prefer_yahoo=prefer_yahoo,
         )
 
         if frequency is ReturnFrequency.DAILY:
@@ -193,11 +202,16 @@ class DataService:
         lookback_years: int,
         window_end: Date,
         warnings: list[str],
+        prefer_yahoo: bool,
     ) -> tuple[list[dict[str, Any]], str]:
         unknown_from_av = False
+        unknown_from_yahoo = False
         last_error: RateLimitError | ProviderUnavailableError | None = None
 
-        if self._av is not None:
+        async def _from_alpha_vantage() -> tuple[list[dict[str, Any]], str]:
+            nonlocal unknown_from_av, last_error
+            if self._av is None:
+                raise ProviderUnavailableError("alpha-vantage", "client not configured")
             try:
                 bars = await self._av.get_historical_daily(ticker)
                 trimmed = _trim_to_window(bars, window_end, lookback_years)
@@ -208,31 +222,60 @@ class DataService:
                 return trimmed, "alpha-vantage"
             except UnknownTickerError:
                 unknown_from_av = True
+                raise
             except RateLimitError as exc:
                 logger.warning("alpha_vantage rate limit: %s", exc.message)
                 warnings.append("Alpha Vantage rate-limited; used Yahoo fallback")
                 last_error = exc
+                raise
             except ProviderUnavailableError as exc:
                 logger.warning("alpha_vantage unavailable: %s", exc.message)
                 warnings.append(f"Alpha Vantage unavailable: {exc.message}; used Yahoo fallback")
                 last_error = exc
-
-        try:
-            bars = await self._yahoo.get_historical_daily(
-                ticker, lookback_years=lookback_years, end=window_end
-            )
-            trimmed = _trim_to_window(bars, window_end, lookback_years)
-            if not trimmed:
-                raise ProviderUnavailableError("yahoo", "trimmed bar set is empty")
-            return trimmed, "yahoo"
-        except UnknownTickerError:
-            if unknown_from_av:
                 raise
+
+        async def _from_yahoo() -> tuple[list[dict[str, Any]], str]:
+            nonlocal unknown_from_yahoo, last_error
+            try:
+                bars = await self._yahoo.get_historical_daily(
+                    ticker, lookback_years=lookback_years, end=window_end
+                )
+                trimmed = _trim_to_window(bars, window_end, lookback_years)
+                if not trimmed:
+                    raise ProviderUnavailableError("yahoo", "trimmed bar set is empty")
+                return trimmed, "yahoo"
+            except UnknownTickerError:
+                unknown_from_yahoo = True
+                raise
+            except (ProviderUnavailableError, RateLimitError) as exc:
+                logger.warning("yahoo fallback failed: %s", exc.message)
+                warnings.append(f"Yahoo fallback failed: {exc.message}")
+                last_error = exc
+                raise
+
+        if prefer_yahoo:
+            try:
+                return await _from_yahoo()
+            except (UnknownTickerError, ProviderUnavailableError, RateLimitError):
+                pass
+            if self._av is not None:
+                try:
+                    return await _from_alpha_vantage()
+                except (UnknownTickerError, ProviderUnavailableError, RateLimitError):
+                    pass
+        else:
+            if self._av is not None:
+                try:
+                    return await _from_alpha_vantage()
+                except (UnknownTickerError, ProviderUnavailableError, RateLimitError):
+                    pass
+            try:
+                return await _from_yahoo()
+            except (UnknownTickerError, ProviderUnavailableError, RateLimitError):
+                pass
+
+        if unknown_from_yahoo and (unknown_from_av or self._av is None):
             raise UnknownTickerError(ticker) from None
-        except (ProviderUnavailableError, RateLimitError) as exc:
-            logger.warning("yahoo fallback failed: %s", exc.message)
-            warnings.append(f"Yahoo fallback failed: {exc.message}")
-            last_error = exc
 
         if self._use_mock:
             warnings.append("Served mock data (all providers unavailable)")

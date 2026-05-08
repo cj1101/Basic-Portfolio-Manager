@@ -444,7 +444,7 @@ export interface TickerValuationBlock {
   fcfeValuePerShare: number | null;
   ddmGordon: number | null;
   ddmTwoStage: number | null;
-  costOfEquity: number;
+  costOfEquity: number | null;
 
   historicalGrowthRate?: number | null;
   sustainableGrowthRate?: number | null;

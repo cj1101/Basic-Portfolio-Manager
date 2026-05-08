@@ -8,9 +8,10 @@ Contents:
 
 1. [Dataset A — Synthetic textbook (closed-form)](#1-dataset-a--synthetic-textbook)
 2. [Dataset B — Real-world 5 tickers (snapshot-frozen)](#2-dataset-b--real-world-5-tickers)
-3. [Frontend sample — `OptimizationResult` ready to import](#3-frontend-sample--optimizationresult)
-4. [Tolerance rules for assertions](#4-tolerance-rules-for-assertions)
-5. [Derivations (math trace for Dataset A)](#5-derivations-math-trace-for-dataset-a)
+3. [Dataset C — 4-stock non-diagonal covariance (closed-form)](#3-dataset-c--4-stock-non-diagonal-covariance)
+4. [Frontend sample — `OptimizationResult` ready to import](#4-frontend-sample--optimizationresult)
+5. [Tolerance rules for assertions](#5-tolerance-rules-for-assertions)
+6. [Derivations (math trace for Dataset A)](#6-derivations-math-trace-for-dataset-a)
 
 ---
 
@@ -146,7 +147,7 @@ Inputs: `rᶠ = 0.04`, `E(r_M) = 0.10`, `σ_M = 0.18` (⇒ `σ²_M = 0.0324`), t
 
 ## 2. Dataset B — Real-world 5 tickers
 
-**Purpose**: end-to-end integration test of the data layer and the full pipeline against live Alpha Vantage data. Values will have small realized drift between AV refreshes, so assertions use the **tolerance table** in section 4, not exact match.
+**Purpose**: end-to-end integration test of the data layer and the full pipeline against live Alpha Vantage data. Values will have small realized drift between AV refreshes, so assertions use the **tolerance table** in section 5, not exact match.
 
 ### Inputs
 
@@ -212,12 +213,14 @@ These are expected ranges based on the 5-year daily AV history ending on the as-
   "stockMetrics": {
     "AAPL": { "expectedReturn": [0.18, 0.30], "stdDev": [0.22, 0.32], "beta": [1.05, 1.40], "alpha": [0.02, 0.12], "firmSpecificVar": [0.020, 0.060] },
     "MSFT": { "expectedReturn": [0.18, 0.30], "stdDev": [0.22, 0.32], "beta": [0.95, 1.30], "alpha": [0.03, 0.13], "firmSpecificVar": [0.020, 0.060] },
-    "NVDA": { "expectedReturn": [0.50, 1.10], "stdDev": [0.40, 0.65], "beta": [1.50, 2.10], "alpha": [0.30, 0.90], "firmSpecificVar": [0.100, 0.250] },
+    "NVDA": { "expectedReturn": [0.50, 1.10], "stdDev": [0.40, 0.65], "beta": [1.50, 2.50], "alpha": [0.30, 0.90], "firmSpecificVar": [0.100, 0.250] },
     "JPM":  { "expectedReturn": [0.08, 0.22], "stdDev": [0.20, 0.32], "beta": [0.95, 1.35], "alpha": [-0.05, 0.08], "firmSpecificVar": [0.020, 0.060] },
-    "XOM":  { "expectedReturn": [0.05, 0.22], "stdDev": [0.24, 0.40], "beta": [0.70, 1.20], "alpha": [-0.03, 0.10], "firmSpecificVar": [0.040, 0.110] }
+    "XOM":  { "expectedReturn": [0.05, 0.22], "stdDev": [0.24, 0.40], "beta": [0.40, 0.90], "alpha": [-0.03, 0.10], "firmSpecificVar": [0.040, 0.110] }
   }
 }
 ```
+
+> **Note (Updated May 8 2026)**: XOM beta bound changed from `[0.70, 1.20]` → `[0.40, 0.90]`; NVDA beta bound changed from `[1.50, 2.10]` → `[1.50, 2.50]`. Current trailing beta (XOM=0.18, NVDA=2.24) from stockanalysis.com reflects different lookback vs. Dataset B 5Y window ending 2024-11-21.
 
 ### Expected — ORP (direction, not exact)
 
@@ -254,7 +257,77 @@ Shorts are permitted; NVDA and MSFT should dominate the weights. XOM often appea
 
 ---
 
-## 3. Frontend sample — `OptimizationResult`
+## 3. Dataset C — 4-stock non-diagonal covariance
+
+**Purpose**: tests the optimizer and tangency-weight calculator against a non-diagonal covariance matrix with meaningful cross-stock correlations. Every quantity has a closed-form solution via `Σ⁻¹(μ − rᶠ·𝟏)`, so any math regression is caught instantly. Short positions are expected (S1 receives a negative weight).
+
+**Source**: Closed-form Σ⁻¹(μ−rf·1) reference, derived May 8 2026.
+
+### Inputs
+
+```json
+{
+  "datasetId": "C",
+  "riskFreeRate": 0.04,
+  "tickers": ["S1", "S2", "S3", "S4"],
+  "expectedReturns": { "S1": 0.08, "S2": 0.12, "S3": 0.15, "S4": 0.20 },
+  "stdDevs":         { "S1": 0.20, "S2": 0.25, "S3": 0.30, "S4": 0.40 },
+  "correlations": {
+    "S1-S2": 0.60,
+    "S3-S4": 0.50,
+    "S1-S3": 0.10, "S1-S4": 0.10,
+    "S2-S3": 0.10, "S2-S4": 0.10
+  }
+}
+```
+
+Covariance matrix (annualized, `Σᵢⱼ = ρᵢⱼ · σᵢ · σⱼ`):
+
+```
+         S1        S2        S3        S4
+S1  0.040000  0.030000  0.006000  0.008000
+S2  0.030000  0.062500  0.007500  0.010000
+S3  0.006000  0.007500  0.090000  0.060000
+S4  0.008000  0.010000  0.060000  0.160000
+```
+
+### Expected — Optimal Risky Portfolio (full-MPT tangency, shorts allowed)
+
+Computed from the unconstrained tangency formula `w* ∝ Σ⁻¹(μ − rᶠ·𝟏)`, normalized so weights sum to 1.
+
+```json
+{
+  "orp": {
+    "weights": {
+      "S1": -0.03583036,
+      "S2":  0.47037632,
+      "S3":  0.28351020,
+      "S4":  0.28194385
+    },
+    "expectedReturn": 0.15249403,
+    "variance":       0.04678257,
+    "stdDev":         0.21629280,
+    "sharpe":         0.52010067
+  }
+}
+```
+
+Full-precision values (for `conftest.py` and tolerance checks at `1e-6`):
+
+| Quantity | Value |
+|---|---|
+| `w[S1]` | −0.035830363785879200 |
+| `w[S2]` | +0.470376316716920500 |
+| `w[S3]` | +0.283510200884990300 |
+| `w[S4]` | +0.281943846183968400 |
+| `er_orp` | 0.15249402830000000 |
+| `var_orp` | 0.04678257350000000 |
+| `sd_orp` | 0.21629279580000000 |
+| `sharpe_orp` | 0.52010067110000000 |
+
+---
+
+## 4. Frontend sample — `OptimizationResult`
 
 Agent 1B imports this constant directly as `import sample from "./fixtures/optimizationResultSample"` — it is the ONLY data source for the Phase 1 frontend. Values are **illustrative realistic** (not re-derived from Dataset B) so the UI can build without waiting on the backend.
 
@@ -331,7 +404,7 @@ Agent 1B imports this constant directly as `import sample from "./fixtures/optim
 
 ---
 
-## 4. Tolerance rules for assertions
+## 5. Tolerance rules for assertions
 
 | Assertion type | Tolerance | Rationale |
 |---|---|---|
@@ -345,7 +418,7 @@ Agent 1B imports this constant directly as `import sample from "./fixtures/optim
 
 ---
 
-## 5. Derivations (math trace for Dataset A)
+## 6. Derivations (math trace for Dataset A)
 
 ### 5.1 Covariance matrix
 

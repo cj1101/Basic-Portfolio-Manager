@@ -106,11 +106,6 @@ export function CourseMetricsTab({
     setValuationThrottleAttempt(0);
     const body = {
       tickers,
-      ddmGordonG: 0.03,
-      ddmTwoStage: { g1: 0.08, g2: 0.03, nPeriods: 5 },
-      wacc: 0.09,
-      fcffGrowth: 0.02,
-      fcffTerminalGrowth: 0.02,
       ...(optimizationRequest.asOf ? { asOf: optimizationRequest.asOf } : {}),
     };
     try {

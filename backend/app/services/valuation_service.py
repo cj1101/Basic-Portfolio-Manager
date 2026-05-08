@@ -188,6 +188,30 @@ def _last_monthly_close_on_or_before(bars: list[PriceBar], window_end: Date) -> 
     return float(last_bar.close)
 
 
+def _bounded_growth_for_perpetuity(
+    growth: float | None,
+    discount_rate: float | None,
+    *,
+    min_spread: float = 0.0025,
+) -> tuple[float | None, bool]:
+    """Ensure inferred perpetual growth stays below the discount rate.
+
+    Returns ``(adjusted_growth, was_adjusted)``.
+    """
+    if growth is None:
+        return None, False
+    g = float(growth)
+    if not np.isfinite(g):
+        return None, True
+    if discount_rate is None or not np.isfinite(discount_rate):
+        return g, False
+    k = float(discount_rate)
+    cap = k - float(min_spread)
+    if g >= cap:
+        return cap, True
+    return g, False
+
+
 class ValuationService:
     async def run(
         self,
@@ -222,6 +246,35 @@ class ValuationService:
             sw.append(f"Failed to fetch SPY benchmark for beta: {e}")
             spy_bars = []
 
+        dynamic_mrp: float | None = None
+        try:
+            if len(spy_bars) >= 2:
+                spy_returns: list[float] = []
+                prev_close = None
+                for bar in spy_bars:
+                    if prev_close is not None and prev_close > 0:
+                        spy_returns.append((bar.close - prev_close) / prev_close)
+                    prev_close = bar.close
+
+                if spy_returns:
+                    arr_spy = np.array(spy_returns)
+                    spy_annualized_return = np.prod(1 + arr_spy) ** (12.0 / len(arr_spy)) - 1.0
+                    candidate_mrp = float(spy_annualized_return) - float(risk_free_rate)
+
+                    # Guardrail: keep a plausible long-run equity premium range.
+                    if 0.0 <= candidate_mrp <= 0.2:
+                        dynamic_mrp = candidate_mrp
+                    else:
+                        sw.append(
+                            f"SPY-derived MRP {candidate_mrp:.4f} out of bounds; market risk premium unavailable."
+                        )
+                else:
+                    sw.append("SPY historical returns unavailable for MRP.")
+            else:
+                sw.append("Insufficient SPY history for MRP.")
+        except Exception as e:
+            sw.append(f"Failed to compute SPY-derived MRP: {e}")
+
         for raw in request.tickers:
             t = str(raw).upper().strip()
             tw: list[str] = []
@@ -241,6 +294,7 @@ class ValuationService:
                         ticker=t,
                         financial_unsafe=True,
                         risk_free_annual=float(risk_free_rate),
+                        market_risk_premium=float(dynamic_mrp) if dynamic_mrp is not None else None,
                     )
                 )
                 rows.append(
@@ -252,7 +306,8 @@ class ValuationService:
                         fcfe_value_per_share=None,
                         ddm_gordon=None,
                         ddm_two_stage=None,
-                        cost_of_equity=risk_free_rate + 0.05,
+                        cost_of_equity=request.cost_of_equity_override,
+                        wacc=request.wacc,
                         warnings=tw,
                     )
                 )
@@ -270,36 +325,41 @@ class ValuationService:
             ebit = _num(i0, "ebit", "ebitb")
             tax_e = _num(i0, "incomeTaxExpense", "incomeTax")
             ebt = _num(i0, "incomeBeforeTax", "incomeBeforeTax")
-            t_rate = 0.21
-            if ebt and ebt > 0 and tax_e is not None:
+            t_rate: float | None = None
+            if ebt is not None and ebt > 0 and tax_e is not None:
                 t_rate = min(max(tax_e / ebt, 0.0), 0.5)
-            depr = (
-                _num(c0, "depreciationDepletionAndAmortization", "depreciationAndAmortization")
-                or 0.0
+            elif not financial_unsafe and ebit is not None:
+                tw.append("Effective tax rate unavailable; EBIT-based valuation skipped.")
+            depr = _num(
+                c0, "depreciationDepletionAndAmortization", "depreciationAndAmortization"
             )
             cap_raw = _num(c0, "capitalExpenditures", "capitalExpenditure")
-            capex = abs(float(cap_raw)) if cap_raw is not None else 0.0
+            capex = abs(float(cap_raw)) if cap_raw is not None else None
             ca0 = _num(b0, "totalCurrentAssets", "currentAssets")
             cl0 = _num(b0, "totalCurrentLiabilities", "currentLiabilities")
             ca1 = _num(b1, "totalCurrentAssets", "currentAssets")
             cl1 = _num(b1, "totalCurrentLiabilities", "currentLiabilities")
-            nwc0 = (ca0 or 0.0) - (cl0 or 0.0)
-            nwc1 = (ca1 or 0.0) - (cl1 or 0.0)
-            delta_nwc = nwc0 - nwc1
+            delta_nwc: float | None = None
+            if None not in (ca0, cl0, ca1, cl1):
+                nwc0 = float(ca0) - float(cl0)
+                nwc1 = float(ca1) - float(cl1)
+                delta_nwc = nwc0 - nwc1
+            elif not financial_unsafe and ebit is not None:
+                tw.append("Working capital inputs incomplete; EBIT-based valuation skipped.")
             _ie = _num(
                 i0,
                 "interestAndDebtExpense",
                 "interestExpense",
                 "totalInterestExpense",
             )
-            int_exp = abs(float(_ie)) if _ie is not None else 0.0
+            int_exp = abs(float(_ie)) if _ie is not None else None
             debt0 = _interest_bearing_debt(b0)
             debt1 = _interest_bearing_debt(b1)
-            net_borrowing = 0.0
+            net_borrowing: float | None = None
             if debt0 is not None and debt1 is not None:
                 net_borrowing = debt0 - debt1
             elif not financial_unsafe and ebit is not None:
-                tw.append("Total debt incomplete; net borrowing assumed 0 for FCFE")
+                tw.append("Total debt incomplete; FCFE valuation skipped.")
 
             if financial_unsafe:
                 fcff = None
@@ -308,9 +368,15 @@ class ValuationService:
                 tw.append("EBIT missing; cannot compute FCFF")
                 fcff = None
                 fcfe = None
+            elif None in (t_rate, depr, capex, delta_nwc):
+                fcff = None
+                fcfe = None
             else:
                 fcff = fcff_nopat_depre_capex_deltanwc(ebit, t_rate, depr, capex, delta_nwc)
-                fcfe = fcfe_from_fcff(fcff, int_exp, t_rate, net_borrowing)
+                if int_exp is None or net_borrowing is None:
+                    fcfe = None
+                else:
+                    fcfe = fcfe_from_fcff(fcff, int_exp, t_rate, net_borrowing)
 
             historical_prices = None
             historical_return = None
@@ -391,12 +457,13 @@ class ValuationService:
                     "using CAPM fallback chain without live overview beta."
                 )
             if beta is None:
-                beta = 1.0
-                tw.append("Beta missing (and 10y calc failed); using 1.0 for CAPM k_e")
-            mrp = 0.05
+                tw.append("Beta unavailable; CAPM cost of equity cannot be calculated.")
+            mrp = dynamic_mrp
             k_e = request.cost_of_equity_override
-            if k_e is None:
+            if k_e is None and beta is not None and mrp is not None:
                 k_e = float(risk_free_rate) + float(beta) * mrp
+            elif k_e is None and mrp is None:
+                tw.append("Market risk premium unavailable; CAPM cost of equity cannot be calculated.")
 
             cost_of_debt: float | None = None
             weight_of_equity: float | None = None
@@ -404,7 +471,7 @@ class ValuationService:
             calculated_wacc: float | None = None
 
             market_cap = _num(ov_inputs, "marketCap", "MarketCapitalization")
-            if market_cap is not None and market_cap > 0:
+            if market_cap is not None and market_cap > 0 and k_e is not None:
                 e_val = market_cap
                 d_val = debt0 if debt0 is not None else 0.0
                 v_val = e_val + d_val
@@ -412,18 +479,29 @@ class ValuationService:
                 weight_of_equity = e_val / v_val
                 weight_of_debt = d_val / v_val
 
-                cost_of_debt = int_exp / d_val if d_val > 0 and int_exp > 0 else 0.0
+                if d_val > 0:
+                    if int_exp is not None and int_exp > 0:
+                        cost_of_debt = int_exp / d_val
+                    elif int_exp == 0:
+                        cost_of_debt = 0.0
 
-                calculated_wacc = (weight_of_equity * k_e) + (
-                    weight_of_debt * cost_of_debt * (1 - t_rate)
-                )
-            else:
+                if t_rate is not None and cost_of_debt is not None:
+                    calculated_wacc = (weight_of_equity * k_e) + (
+                        weight_of_debt * cost_of_debt * (1 - t_rate)
+                    )
+                elif d_val == 0.0:
+                    calculated_wacc = k_e
+                else:
+                    tw.append("WACC unavailable; debt or tax inputs are incomplete.")
+            elif market_cap is None or market_cap <= 0:
+                tw.append("WACC unavailable; market capitalization is missing.")
+            elif k_e is not None:
                 calculated_wacc = k_e
 
             wacc = request.wacc
             if wacc is None:
                 wacc = calculated_wacc
-                if wacc == k_e:
+                if wacc is not None and k_e is not None and wacc == k_e:
                     sw.append(
                         f"{t}: WACC not set and market cap unavailable/no debt; using k_e ({wacc}) for FCFF value"
                     )
@@ -457,11 +535,25 @@ class ValuationService:
 
             g_f = request.fcff_growth
             if g_f is None:
-                g_f = sustainable_growth_rate if sustainable_growth_rate is not None else 0.02
+                g_f = sustainable_growth_rate
+                g_f, adj = _bounded_growth_for_perpetuity(g_f, k_e)
+                if adj and g_f is not None:
+                    tw.append(
+                        f"FCFE growth auto-adjusted to {g_f:.2%} to stay below cost of equity."
+                    )
+            if g_f is None and fcfe is not None:
+                tw.append("FCFE growth unavailable; FCFE perpetuity valuation skipped.")
 
             g_t = request.fcff_terminal_growth
             if g_t is None:
-                g_t = 0.025
+                g_t = sustainable_growth_rate
+                g_t, adj = _bounded_growth_for_perpetuity(g_t, wacc)
+                if adj and g_t is not None:
+                    tw.append(
+                        f"FCFF terminal growth auto-adjusted to {g_t:.2%} to stay below WACC."
+                    )
+            if g_t is None and fcff is not None:
+                tw.append("FCFF terminal growth unavailable; FCFF perpetuity valuation skipped.")
 
             fcff_equity_v = None
             fcfe_v = None
@@ -478,7 +570,7 @@ class ValuationService:
                         fcff_equity_v = equity_value_from_enterprise_value(enterprise_v, nd)
                 except ValueError as exc:
                     tw.append(f"FCFF value: {exc}")
-            if fcfe is not None:
+            if fcfe is not None and k_e is not None and g_f is not None:
                 try:
                     fcfe_v = fcfe_equity_value_perpetuity(fcfe, k_e, g_f)
                 except ValueError as exc:
@@ -490,9 +582,14 @@ class ValuationService:
 
             g_div = request.ddm_gordon_g
             if g_div is None:
-                g_div = sustainable_growth_rate if sustainable_growth_rate is not None else 0.02
+                g_div = sustainable_growth_rate
+                g_div, adj = _bounded_growth_for_perpetuity(g_div, k_e)
+                if adj and g_div is not None:
+                    tw.append(
+                        f"Gordon DDM growth auto-adjusted to {g_div:.2%} to stay below cost of equity."
+                    )
 
-            if dps is not None and g_div is not None and k_e > g_div:
+            if dps is not None and k_e is not None and g_div is not None and k_e > g_div:
                 try:
                     d1 = float(dps) * (1.0 + g_div)
                     ddm_g = ddm_gordon(d1, k_e, g_div)
@@ -509,10 +606,14 @@ class ValuationService:
                         )
                 except (ValueError, InvalidValuationError) as exc:
                     tw.append(f"Gordon DDM: {exc}")
-            elif dps is not None and g_div is not None:
+            elif dps is not None and k_e is not None and g_div is not None:
                 tw.append("Gordon DDM skipped: cost of equity must exceed dividend growth")
+            elif dps is not None and g_div is None:
+                tw.append("Gordon DDM skipped: dividend growth unavailable.")
+            elif dps is not None and k_e is None:
+                tw.append("Gordon DDM skipped: cost of equity unavailable.")
 
-            if dps is not None and k_e > 0:
+            if dps is not None and k_e is not None and k_e > 0:
                 try:
                     if request.ddm_two_stage is not None:
                         g1 = request.ddm_two_stage.g1
@@ -520,27 +621,34 @@ class ValuationService:
                         n_ = int(request.ddm_two_stage.n_periods)
                     else:
                         eps_growth = _num(ov_inputs, "earningsGrowth")
-                        g1 = (
-                            eps_growth
-                            if eps_growth is not None
-                            else (
-                                sustainable_growth_rate
-                                if sustainable_growth_rate is not None
-                                else 0.05
-                            )
-                        )
-                        g2 = 0.025
+                        g1 = eps_growth if eps_growth is not None else sustainable_growth_rate
+                        g2 = sustainable_growth_rate
                         n_ = 5
+                        g1, g1_adj = _bounded_growth_for_perpetuity(g1, k_e)
+                        g2, g2_adj = _bounded_growth_for_perpetuity(g2, k_e)
+                        if g1_adj and g1 is not None:
+                            tw.append(
+                                f"Two-stage DDM stage-1 growth auto-adjusted to {g1:.2%} to stay below cost of equity."
+                            )
+                        if g2_adj and g2 is not None:
+                            tw.append(
+                                f"Two-stage DDM stage-2 growth auto-adjusted to {g2:.2%} to stay below cost of equity."
+                            )
 
-                    if k_e <= g1 or k_e <= g2:
+                    if g1 is None or g2 is None:
+                        tw.append("Two-stage DDM skipped: growth inputs unavailable.")
+                    elif k_e <= g1 or k_e <= g2:
                         raise InvalidValuationError(
                             "DDM two-stage: k must exceed g1 and g2", {"k": k_e}
                         )
-                    ddm2 = ddm_two_stage(float(dps), g1, g2, n_, k_e)
+                    else:
+                        ddm2 = ddm_two_stage(float(dps), g1, g2, n_, k_e)
                 except (ValueError, InvalidValuationError) as exc:
                     tw.append(f"Two-stage DDM: {exc}")
             elif dps is None:
                 tw.append("DDM skipped (dividend per share missing from overview)")
+            elif k_e is None:
+                tw.append("Two-stage DDM skipped: cost of equity unavailable.")
 
             if fcff_equity_v is not None and sh is not None:
                 fcff_value_per_share: float | None = per_share(fcff_equity_v, sh)
@@ -632,15 +740,15 @@ class ValuationService:
                 ValuationExportDrivers(
                     ticker=t,
                     ebit=ebit,
-                    tax_rate=float(t_rate),
-                    depreciation=float(depr),
-                    capex=float(capex),
-                    delta_nwc=float(delta_nwc),
-                    interest_expense=float(int_exp),
-                    net_borrowing=float(net_borrowing),
+                    tax_rate=float(t_rate) if t_rate is not None else None,
+                    depreciation=float(depr) if depr is not None else None,
+                    capex=float(capex) if capex is not None else None,
+                    delta_nwc=float(delta_nwc) if delta_nwc is not None else None,
+                    interest_expense=float(int_exp) if int_exp is not None else None,
+                    net_borrowing=float(net_borrowing) if net_borrowing is not None else None,
                     financial_unsafe=bool(financial_unsafe),
-                    beta=float(beta),
-                    market_risk_premium=0.05,
+                    beta=float(beta) if beta is not None else None,
+                    market_risk_premium=float(mrp) if mrp is not None else None,
                     risk_free_annual=float(risk_free_rate),
                     market_cap=float(market_cap) if market_cap is not None else None,
                     total_debt=float(debt0) if debt0 is not None else None,
@@ -657,7 +765,7 @@ class ValuationService:
                     fcfe_value_per_share=fcfe_value_per_share,
                     ddm_gordon=ddm_g,
                     ddm_two_stage=ddm2,
-                    cost_of_equity=float(k_e),
+                    cost_of_equity=float(k_e) if k_e is not None else None,
                     cost_of_debt=cost_of_debt,
                     weight_of_equity=weight_of_equity,
                     weight_of_debt=weight_of_debt,
